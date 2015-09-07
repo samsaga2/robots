@@ -1,26 +1,40 @@
-  module main
+  defpage 0, 0x4000, 0x4000
+  map 0xc000
+
+	page 0
 
 
   ;;
+  ;; romheader
+  ;;
+romheader:
+	db "AB"
+	dw start
+	ds 12
+
+
+ 	;;
   ;; start
   ;;
 start:
-  call init
+  call game.init
   call logo.run
   call game.run
   ret
 
 
-  ;;
-  ;; init
-  ;;
-init:
-  ;; screen 2
-  ld a,2
-  call bios.chgmod
-  ;; disable keyboard click
-  xor a
-  ld (sysvar.cliksw),a
-  ;; change border color
-  ld (sysvar.bdrclr),a
-  jp bios.chgclr
+  ;; asm files
+  include bios.asm
+  include sysvar.asm
+  include uncompress.asm
+  include graphics.asm
+  include math.asm
+  include logo.asm
+  include game.asm
+  include level.asm
+  include collision.asm
+  include spr.asm
+  include robots.asm
+	include robot.asm
+  include player.asm
+  include resources.asm

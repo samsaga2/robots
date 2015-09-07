@@ -20,11 +20,15 @@ msg_dead1:
   ;; logo
   ;;
 logo_color:
- incbin logo3.col
-logo_frame0:
- incbin logo.pat
+ incbin logofinal.col
 logo_frame1:
+ incbin logo1.pat
+logo_frame2:
  incbin logo2.pat
+logo_frame3:
+ incbin logo3.pat
+logo_frame4:
+ incbin logo4.pat
 
 
   ;;

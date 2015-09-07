@@ -24,40 +24,41 @@ load_color:
   ;; show_anim
   ;;
 show_anim:
-  call load_frame0
-  call wait
-	ret nz
-  call load_frame1
-  call wait
-  ret nz
-  jr show_anim
+  ld b,2
+.loop:
+  push bc
+ 	ld de,resources.logo_frame1
+  call show_frame
+  call bios.enascr
+ 	ld de,resources.logo_frame2
+  call show_frame
+	ld de,resources.logo_frame3
+  call show_frame
+	ld de,resources.logo_frame4
+  call show_frame
+  pop bc
+  djnz .loop
+  ret
 
 
   ;;
-  ;; load_frame0
+  ;; show_frame
   ;;
-load_frame0:
-  ld de,resources.logo_frame0
+show_frame:
   ld hl,(sysvar.grpcgp)
+  halt
   call uncompress.to_vram
-  jp bios.enascr
-
-
-  ;;
-  ;; load_frame1
-  ;;
-load_frame1:
-  ld de,resources.logo_frame1
-  ld hl,(sysvar.grpcgp)
-  call uncompress.to_vram
-  jp bios.enascr
+  call wait
+  ret z
+  pop hl
+  ret
 
 
   ;;
   ;; wait
   ;;
 wait:
-  ld b,20
+  ld b,5
 .loop:
   call bios.chsns
   ret nz
