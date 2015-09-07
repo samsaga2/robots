@@ -1,0 +1,3100 @@
+Sjasm Z80 Assembler v0.42c - www.xl2s.tk             [2015.09.07 - 11:29:46]
+
+rom.asm
+Errors: 0
+
+       1   00:0000                        defpage 0, 0x4000, 0x4000
+       2   00:0000  (C000)                map 0xc000
+       3   00:0000                      
+       4   00:0000  (00)                	page 0
+       5   00:4000                      
+       6   00:4000                      
+       7   00:4000                        ;;
+       8   00:4000                        ;; romheader
+       9   00:4000                        ;;
+      10   00:4000                      romheader:
+      11   00:4000  41 42               	db "AB"
+      12   00:4002  10 40               	dw main.start
+      13   00:4004  00 (12)             	ds 12
+      14   00:4010                      
+      15   00:4010                      
+      16   00:4010                        ;; asm files
+      17   00:4010                        include bios.asm
+       1.  00:4010                        ;; http://map.grauw.nl/resources/msxbios.php
+       2.  00:4010                      
+       3.  00:4010                        module bios
+       4.  00:4010                      
+       5.  00:4010                      ;; CHKRAM (also called STARTUP, RESET or BOOT)
+       6.  00:4010                      ;; Address  : #0000
+       7.  00:4010                      ;; Function : Tests RAM and sets RAM slot for the system
+       8.  00:4010                      ;; Registers: All
+       9.  00:4010                      ;; Remark   : After this, a jump must be made to INIT, for further initialisation.
+      10.  00:4010  (00:0000)           chkram equ 0x0000
+      11.  00:4010                      
+      12.  00:4010                      ;; SYNCHR
+      13.  00:4010                      ;; Address  : #0008
+      14.  00:4010                      ;; Function : tests whether the character of [HL] is the specified character
+      15.  00:4010                      ;;            if not, it generates SYNTAX ERROR, otherwise it goes to CHRGTR (#0010)
+      16.  00:4010                      ;; Input    : set the character to be tested in [HL] and the character to be
+      17.  00:4010                      ;;            compared next to RST instruction which calls this routine (inline parameter)
+      18.  00:4010                      ;; Output   : HL is increased by one and A receives [HL], When the tested character is
+      19.  00:4010                      ;;            numerical, the CY flag is set the end of the statement (00h or 3Ah) causes
+      20.  00:4010                      ;;            the Z flag to be set
+      21.  00:4010                      ;; Registers: AF, HL
+      22.  00:4010  (00:0008)           synchr equ 0x0008
+      23.  00:4010                      
+      24.  00:4010                      ;; RDSLT
+      25.  00:4010                      ;; Address  : #000C
+      26.  00:4010                      ;; Function : Reads the value of an address in another slot
+      27.  00:4010                      ;; Input    : A  - ExxxSSPP
+      28.  00:4010                      ;;            |        || Primary  slotnumber  (00-11)
+      29.  00:4010                      ;;            HL - Address to read
+      30.  00:4010                      ;; Output   : A  - Contains the vaule of the read address
+      31.  00:4010                      ;; Registers: AF, C, DE
+      32.  00:4010                      ;; Remark   : This routine turns off the interupt, but won't turn it on again
+      33.  00:4010  (00:000C)           rdslt equ 0x000c
+      34.  00:4010                      
+      35.  00:4010                      ;; CHRGTR
+      36.  00:4010                      ;; Address  : #0010
+      37.  00:4010                      ;; Function : Gets the next character (or token) of the Basic-text
+      38.  00:4010                      ;; Input    : HL - Address last character
+      39.  00:4010                      ;; Output   : HL - points to the next character
+      40.  00:4010                      ;;            A  - contains the character
+      41.  00:4010                      ;;            C  - flag set if it's a number
+      42.  00:4010                      ;;            Z  - flag set if it's the end of the statement
+      43.  00:4010                      ;; Registers: AF, HL
+      44.  00:4010  (00:0010)           chrgtr equ 0x0010
+      45.  00:4010                      
+      46.  00:4010                      ;; WRSLT
+      47.  00:4010                      ;; Address  : #0014
+      48.  00:4010                      ;; Function : Writes a value to an address in another slot.
+      49.  00:4010                      ;; Input    : A  - Slot in which the value will be written
+      50.  00:4010                      ;;            see RDSLT for input
+      51.  00:4010                      ;;            HL - Address of value to write
+      52.  00:4010                      ;;            E  - value to write
+      53.  00:4010                      ;; Registers: AF, BC, D
+      54.  00:4010                      ;; Remark   : See RDSLT
+      55.  00:4010  (00:0014)           wrslt equ 0x0014
+      56.  00:4010                      
+      57.  00:4010                      ;; OUTDO
+      58.  00:4010                      ;; Address  : #0018
+      59.  00:4010                      ;; Function : Output to current outputchannel (printer, diskfile, etc.)
+      60.  00:4010                      ;; Input    : A  - PRTFIL, PRTFLG
+      61.  00:4010                      ;; Remark   : Used in basic, in ML it's pretty difficult
+      62.  00:4010  (00:0018)           outdo equ 0x0018
+      63.  00:4010                      
+      64.  00:4010                      ;; CALSLT
+      65.  00:4010                      ;; Address  : #001C
+      66.  00:4010                      ;; Function : Executes inter-slot call.
+      67.  00:4010                      ;; Input    : IY - High byte with input for A in RDSLT
+      68.  00:4010                      ;;            IX - The address that will be called
+      69.  00:4010                      ;; Remark   : Variables can never be given in alternative registers
+      70.  00:4010                      ;;            of the Z-80 or IX and IY
+      71.  00:4010  (00:001C)           calslt equ 0x001c
+      72.  00:4010                      
+      73.  00:4010                      ;; DCOMPR
+      74.  00:4010                      ;; Address  : #0020
+      75.  00:4010                      ;; Function : Compares HL with DE
+      76.  00:4010                      ;; Input    : HL, DE
+      77.  00:4010                      ;; Output   : Z-flag set if HL and DE are the same.
+      78.  00:4010                      ;; Registers: AF
+      79.  00:4010  (00:0020)           dcompr equ 0x0020
+      80.  00:4010                      
+      81.  00:4010                      ;; ENASLT
+      82.  00:4010                      ;; Address  : #0024
+      83.  00:4010                      ;; Function : Switches indicated slot at indicated page on perpetual
+      84.  00:4010                      ;; Input    : A  - ExxxSSPP
+      85.  00:4010                      ;;                 +-?------ see RDSLT
+      86.  00:4010                      ;;            H - Bit 6 and 7 must contain the page number (00-11)
+      87.  00:4010  (00:0024)           enaslt equ 0x0024
+      88.  00:4010                      
+      89.  00:4010                      ;; GETYPR
+      90.  00:4010                      ;; Address  : #0028
+      91.  00:4010                      ;; Function : Returns Type of DAC
+      92.  00:4010                      ;; Input    : DAC
+      93.  00:4010                      ;; Output   : S,Z,P/V, CY
+      94.  00:4010                      ;; Registers: AF
+      95.  00:4010                      ;; Remark   : Not a very clear routine to me, please mail us if you know more about it.
+      96.  00:4010  (00:0028)           getypr equ 0x0028
+      97.  00:4010                      
+      98.  00:4010                      ;; CALLF
+      99.  00:4010                      ;; Address  : #0030
+     100.  00:4010                      ;; Function : Executes an interslot call
+     101.  00:4010                      ;; Output   : depends on the calling routine
+     102.  00:4010                      ;; Registers: AF, and the other registers depending on the calling routine
+     103.  00:4010                      ;; Remark   : The following is the calling sequence:
+     104.  00:4010                      ;;            RST #30
+     105.  00:4010                      ;;            DB destination slot (see RDSLT accu)
+     106.  00:4010                      ;;            DW destination address
+     107.  00:4010  (00:0030)           callf equ 0x0030
+     108.  00:4010                      
+     109.  00:4010                      ;; KEYINT
+     110.  00:4010                      ;; Address  : #0038
+     111.  00:4010                      ;; Function : Executes the timer interrupt process routine
+     112.  00:4010  (00:0038)           keyint equ 0x0038
+     113.  00:4010                      
+     114.  00:4010                      ;;
+     115.  00:4010                      ;; Initialization-routines
+     116.  00:4010                      ;;
+     117.  00:4010                      
+     118.  00:4010                      ;; INITIO
+     119.  00:4010                      ;; Address  : #003B
+     120.  00:4010                      ;; Function : Initialises the device
+     121.  00:4010                      ;; Registers: All
+     122.  00:4010  (00:003B)           initio equ 0x003b
+     123.  00:4010                      
+     124.  00:4010                      ;; INIFNK
+     125.  00:4010                      ;; Address  : #003E
+     126.  00:4010                      ;; Function : Initialises the contents of the function keys
+     127.  00:4010                      ;; Registers: All
+     128.  00:4010  (00:003E)           inifnk equ 0x003e
+     129.  00:4010                      
+     130.  00:4010                      ;;
+     131.  00:4010                      ;; VDP routines
+     132.  00:4010                      ;;
+     133.  00:4010                      
+     134.  00:4010                      ;; DISSCR
+     135.  00:4010                      ;; Address  : #0041
+     136.  00:4010                      ;; Function : inhibits the screen display
+     137.  00:4010                      ;; Registers: AF, BC
+     138.  00:4010  (00:0041)           disscr equ 0x0041
+     139.  00:4010                      
+     140.  00:4010                      ;; ENASCR
+     141.  00:4010                      ;; Address  : #0044
+     142.  00:4010                      ;; Function : displays the screen
+     143.  00:4010                      ;; Registers: AF, BC
+     144.  00:4010  (00:0044)           enascr equ 0x0044
+     145.  00:4010                      
+     146.  00:4010                      ;; WRTVDP
+     147.  00:4010                      ;; Address  : #0047
+     148.  00:4010                      ;; Function : write data in the VDP-register
+     149.  00:4010                      ;; Input    : B  - data to write
+     150.  00:4010                      ;;            C  - number of the register
+     151.  00:4010                      ;; Registers: AF, BC
+     152.  00:4010  (00:0047)           wrtvdp equ 0x0047
+     153.  00:4010                      
+     154.  00:4010                      ;; RDVRM
+     155.  00:4010                      ;; Address  : #004A
+     156.  00:4010                      ;; Function : Reads the content of VRAM
+     157.  00:4010                      ;; Input    : HL - address read
+     158.  00:4010                      ;; Output   : A  - value which was read
+     159.  00:4010                      ;; Registers: AF
+     160.  00:4010  (00:004A)           rdvrm equ 0x004a
+     161.  00:4010                      
+     162.  00:4010                      ;; WRTVRM
+     163.  00:4010                      ;; Address  : #004D
+     164.  00:4010                      ;; Function : Writes data in VRAM
+     165.  00:4010                      ;; Input    : HL - address write
+     166.  00:4010                      ;;            A  - value write
+     167.  00:4010                      ;; Registers: AF
+     168.  00:4010  (00:004D)           wrtvrm equ 0x004d
+     169.  00:4010                      
+     170.  00:4010                      ;; SETRD
+     171.  00:4010                      ;; Address  : #0050
+     172.  00:4010                      ;; Function : Enable VDP to read
+     173.  00:4010                      ;; Input    : HL - for VRAM-address
+     174.  00:4010                      ;; Registers: AF
+     175.  00:4010  (00:0050)           setrd equ 0x0050
+     176.  00:4010                      
+     177.  00:4010                      ;; SETWRT
+     178.  00:4010                      ;; Address  : #0053
+     179.  00:4010                      ;; Function : Enable VDP to write
+     180.  00:4010                      ;; Input    : HL - Address
+     181.  00:4010                      ;; Registers: AF
+     182.  00:4010  (00:0053)           setwrt equ 0x0053
+     183.  00:4010                      
+     184.  00:4010                      ;; FILVRM
+     185.  00:4010                      ;; Address  : #0056
+     186.  00:4010                      ;; Function : fill VRAM with value
+     187.  00:4010                      ;; Input    : A  - data byte
+     188.  00:4010                      ;;            BC - length of the area to be written
+     189.  00:4010                      ;;            HL - start address
+     190.  00:4010                      ;; Registers: AF, BC
+     191.  00:4010  (00:0056)           filvrm equ 0x0056
+     192.  00:4010                      
+     193.  00:4010                      ;; LDIRMV
+     194.  00:4010                      ;; Address  : #0059
+     195.  00:4010                      ;; Function : Block transfer to memory from VRAM
+     196.  00:4010                      ;; Input    : BC - blocklength
+     197.  00:4010                      ;;            DE - Start address of memory
+     198.  00:4010                      ;;            HL - Start address of VRAM
+     199.  00:4010                      ;; Registers: All
+     200.  00:4010  (00:0059)           ldirmv equ 0x0059
+     201.  00:4010                      
+     202.  00:4010                      ;; LDIRVM
+     203.  00:4010                      ;; Address  : #005C
+     204.  00:4010                      ;; Function : Block transfer to VRAM from memory
+     205.  00:4010                      ;; Input    : BC - blocklength
+     206.  00:4010                      ;;            DE - Start address of VRAM
+     207.  00:4010                      ;;            HL - Start address of memory
+     208.  00:4010                      ;; Registers: All
+     209.  00:4010  (00:005C)           ldirvm equ 0x005c
+     210.  00:4010                      
+     211.  00:4010                      ;; CHGMOD
+     212.  00:4010                      ;; Address  : #005F
+     213.  00:4010                      ;; Function : Switches to given screenmode
+     214.  00:4010                      ;; Input    : A  - screen mode
+     215.  00:4010                      ;; Registers: All
+     216.  00:4010  (00:005F)           chgmod equ 0x005f
+     217.  00:4010                      
+     218.  00:4010                      ;; CHGCLR
+     219.  00:4010                      ;; Address  : #0062
+     220.  00:4010                      ;; Function : Changes the screencolors
+     221.  00:4010                      ;; Input    : Foregroundcolor in FORCLR
+     222.  00:4010                      ;;            Backgroundcolor in BAKCLR
+     223.  00:4010                      ;;            Bordercolor in BDRCLR
+     224.  00:4010                      ;; Registers: All
+     225.  00:4010  (00:0062)           chgclr equ 0x0062
+     226.  00:4010                      
+     227.  00:4010                      ;; NMI
+     228.  00:4010                      ;; Address  : #0066
+     229.  00:4010                      ;; Function : Executes (non-maskable interupt) handling routine
+     230.  00:4010  (00:0066)           nmi equ 0x0066
+     231.  00:4010                      
+     232.  00:4010                      ;; CLRSPR
+     233.  00:4010                      ;; Address  : #0069
+     234.  00:4010                      ;; Function : Initialises all sprites
+     235.  00:4010                      ;; Input    : SCRMOD
+     236.  00:4010                      ;; Registers: Alles
+     237.  00:4010  (00:0069)           clrspr equ 0x0069
+     238.  00:4010                      
+     239.  00:4010                      ;; INITXT
+     240.  00:4010                      ;; Address  : #006C
+     241.  00:4010                      ;; Function : Schakelt naar SCREEN 0 (tekst-scherm met 40*24 tekens)
+     242.  00:4010                      ;; Input    : TXTNAM, TXTCGP
+     243.  00:4010                      ;; Registers: All
+     244.  00:4010  (00:006C)           initxt equ 0x006c
+     245.  00:4010                      
+     246.  00:4010                      ;; INIT32
+     247.  00:4010                      ;; Address  : #006F
+     248.  00:4010                      ;; Function : Switches to SCREEN 1 (text screen with 32*24 characters)
+     249.  00:4010                      ;; Input    : T32NAM, T32CGP, T32COL, T32ATR, T32PAT
+     250.  00:4010                      ;; Registers: All
+     251.  00:4010  (00:006F)           init32 equ 0x006f
+     252.  00:4010                      
+     253.  00:4010                      ;; INIGRP
+     254.  00:4010                      ;; Address  : #0072
+     255.  00:4010                      ;; Function : Switches to SCREEN 2 (high resolution screen with 256*192 pixels)
+     256.  00:4010                      ;; Input    : GRPNAM, GRPCGP, GRPCOL, GRPATR, GRPPAT
+     257.  00:4010                      ;; Registers: All
+     258.  00:4010  (00:0072)           inigrp equ 0x0072
+     259.  00:4010                      
+     260.  00:4010                      ;; INIMLT
+     261.  00:4010                      ;; Address  : #0075
+     262.  00:4010                      ;; Function : Switches to SCREEN 3 (multi-color screen 64*48 pixels)
+     263.  00:4010                      ;; Input    : MLTNAM, MLTCGP, MLTCOL, MLTATR, MLTPAT
+     264.  00:4010                      ;; Registers: All
+     265.  00:4010  (00:0075)           inimlt equ 0x0075
+     266.  00:4010                      
+     267.  00:4010                      ;; SETTXT
+     268.  00:4010                      ;; Address  : #0078
+     269.  00:4010                      ;; Function : Switches to VDP in SCREEN 0 mode
+     270.  00:4010                      ;; Input    : See INITXT
+     271.  00:4010                      ;; Registers: All
+     272.  00:4010  (00:0078)           settxt equ 0x0078
+     273.  00:4010                      
+     274.  00:4010                      ;; SETT32
+     275.  00:4010                      ;; Address  : #007B
+     276.  00:4010                      ;; Function : Schakelt VDP in SCREEN 1 modus
+     277.  00:4010                      ;; Input    : See INIT32
+     278.  00:4010                      ;; Registers: All
+     279.  00:4010  (00:007B)           sett32 equ 0x007b
+     280.  00:4010                      
+     281.  00:4010                      ;; SETGRP
+     282.  00:4010                      ;; Address  : #007E
+     283.  00:4010                      ;; Function : Switches VDP to SCREEN 2 mode
+     284.  00:4010                      ;; Input    : See INIGRP
+     285.  00:4010                      ;; Registers: All
+     286.  00:4010  (00:007E)           setgrp equ 0x007e
+     287.  00:4010                      
+     288.  00:4010                      ;; SETMLT
+     289.  00:4010                      ;; Address  : #0081
+     290.  00:4010                      ;; Function : Switches VDP to SCREEN 3 mode
+     291.  00:4010                      ;; Input    : See INIMLT
+     292.  00:4010                      ;; Registers: All
+     293.  00:4010  (00:0081)           setmlt equ 0x0081
+     294.  00:4010                      
+     295.  00:4010                      ;; CALPAT
+     296.  00:4010                      ;; Address  : #0084
+     297.  00:4010                      ;; Function : Returns the address of the sprite pattern table
+     298.  00:4010                      ;; Input    : A  - Sprite ID
+     299.  00:4010                      ;; Output   : HL - For the address
+     300.  00:4010                      ;; Registers: AF, DE, HL
+     301.  00:4010  (00:0084)           calpat equ 0x0084
+     302.  00:4010                      
+     303.  00:4010                      ;; CALATR
+     304.  00:4010                      ;; Address  : #0087
+     305.  00:4010                      ;; Function : Returns the address of the sprite attribute table
+     306.  00:4010                      ;; Input    : A  - Sprite number
+     307.  00:4010                      ;; Output   : HL - For the address
+     308.  00:4010                      ;; Registers: AF, DE, HL
+     309.  00:4010  (00:0087)           calatr equ 0x0087
+     310.  00:4010                      
+     311.  00:4010                      ;; GSPSIZ
+     312.  00:4010                      ;; Address  : #008A
+     313.  00:4010                      ;; Function : Returns current sprite size
+     314.  00:4010                      ;; Output   : A  - Sprite-size in bytes
+     315.  00:4010                      ;;            C-flag set when size is 16*16 sprites otherwise C-flag is reset
+     316.  00:4010                      ;; Registers: AF
+     317.  00:4010  (00:008A)           gspsiz equ 0x008a
+     318.  00:4010                      
+     319.  00:4010                      ;; GRPPRT
+     320.  00:4010                      ;; Address  : #008D
+     321.  00:4010                      ;; Function : Displays a character on the graphic screen
+     322.  00:4010                      ;; Input    : A  - ASCII value of the character to print
+     323.  00:4010  (00:008D)           grpprt equ 0x008d
+     324.  00:4010                      
+     325.  00:4010                      ;;
+     326.  00:4010                      ;; PSG routines
+     327.  00:4010                      ;;
+     328.  00:4010                      
+     329.  00:4010                      ;; GICINI
+     330.  00:4010                      ;; Address  : #0090
+     331.  00:4010                      ;; Function : Initialises PSG and sets initial value for the PLAY statement
+     332.  00:4010                      ;; Registers: All
+     333.  00:4010  (00:0090)           gecini equ 0x0090
+     334.  00:4010                      
+     335.  00:4010                      ;; WRTPSG
+     336.  00:4010                      ;; Address  : #0093
+     337.  00:4010                      ;; Function : Writes data to PSG-register
+     338.  00:4010                      ;; Input    : A  - PSG register number
+     339.  00:4010                      ;;            E  - data write
+     340.  00:4010  (00:0093)           wrtpsg equ 0x0093
+     341.  00:4010                      
+     342.  00:4010                      ;; RDPSG
+     343.  00:4010                      ;; Address  : #0096
+     344.  00:4010                      ;; Function : Reads value from PSG-register
+     345.  00:4010                      ;; Input    : A  - PSG-register read
+     346.  00:4010                      ;; Output   : A  - value read
+     347.  00:4010  (00:0096)           rdpsg equ 0x0096
+     348.  00:4010                      
+     349.  00:4010                      ;; STRTMS
+     350.  00:4010                      ;; Address  : #0099
+     351.  00:4010                      ;; Function : Tests whether the PLAY statement is being executed as a background
+     352.  00:4010                      ;;            task. If not, begins to execute the PLAY statement
+     353.  00:4010                      ;; Registers: All
+     354.  00:4010  (00:0099)           strtms equ 0x0099
+     355.  00:4010                      
+     356.  00:4010                      ;;
+     357.  00:4010                      ;; Console routines
+     358.  00:4010                      ;;
+     359.  00:4010                      
+     360.  00:4010                      ;; CHSNS
+     361.  00:4010                      ;; Address  : #009C
+     362.  00:4010                      ;; Function : Tests the status of the keyboard buffer
+     363.  00:4010                      ;; Output   : Z-flag set if buffer is empty, otherwise not set
+     364.  00:4010                      ;; Registers: AF
+     365.  00:4010  (00:009C)           chsns equ 0x009c
+     366.  00:4010                      
+     367.  00:4010                      ;; CHGET
+     368.  00:4010                      ;; Address  : #009F
+     369.  00:4010                      ;; Function : One character input (waiting)
+     370.  00:4010                      ;; Output   : A  - ASCII-code of the input character
+     371.  00:4010                      ;; Registers: AF
+     372.  00:4010  (00:009F)           chget equ 0x009f
+     373.  00:4010                      
+     374.  00:4010                      ;; CHPUT
+     375.  00:4010                      ;; Address  : #00A2
+     376.  00:4010                      ;; Function : Displays one character
+     377.  00:4010                      ;; Input    : A  - ASCII-code of character to display
+     378.  00:4010  (00:00A2)           chput equ 0x00a2
+     379.  00:4010                      
+     380.  00:4010                      ;; LPTOUT
+     381.  00:4010                      ;; Address  : #00A5
+     382.  00:4010                      ;; Function : Sends one character to printer
+     383.  00:4010                      ;; Input    : A  - ASCII-code of character to send
+     384.  00:4010                      ;; Output   : C-flag set if failed
+     385.  00:4010                      ;; Registers: F
+     386.  00:4010  (00:00A5)           lptout equ 0x00a5
+     387.  00:4010                      
+     388.  00:4010                      ;; LPTSTT
+     389.  00:4010                      ;; Address  : #00A8
+     390.  00:4010                      ;; Function : Tests printer status
+     391.  00:4010                      ;; Output   : A  - #FF and Z-flag reset if printer is ready
+     392.  00:4010                      ;;                 #00 and Z-flag set if not ready
+     393.  00:4010                      ;; Registers: AF
+     394.  00:4010  (00:00A8)           lptstt equ 0x00a8
+     395.  00:4010                      
+     396.  00:4010                      ;; CNVCHR
+     397.  00:4010                      ;; Address  : #00AB
+     398.  00:4010                      ;; Function : tests for the graphic header and transforms the code
+     399.  00:4010                      ;; Input    : A  - charactercode
+     400.  00:4010                      ;; Output   : the C-flag is reset to not the graphic reader
+     401.  00:4010                      ;;            the C-flag and Z-flag are set to the transformed code is set in A
+     402.  00:4010                      ;;            the C-flag is set and Z-flag is reset to the untransformed code is set in A
+     403.  00:4010                      ;; Registers: AF
+     404.  00:4010  (00:00AB)           cnvchr equ 0x00ab
+     405.  00:4010                      
+     406.  00:4010                      ;; PINLIN
+     407.  00:4010                      ;; Address  : #00AE
+     408.  00:4010                      ;; Function : Stores in the specified buffer the character codes input until the return
+     409.  00:4010                      ;;            key or STOP key is pressed
+     410.  00:4010                      ;; Output   : HL - for the starting address of the buffer -1
+     411.  00:4010                      ;;            C-flag set when it ends with the STOP key
+     412.  00:4010                      ;; Registers: All
+     413.  00:4010  (00:00AE)           pinlin equ 0x00ae
+     414.  00:4010                      
+     415.  00:4010                      ;; INLIN
+     416.  00:4010                      ;; Address  : #00B1
+     417.  00:4010                      ;; Function : Same as PINLIN except that AUGFLG (#F6AA) is set
+     418.  00:4010                      ;; Output   : HL - for the starting address of the buffer -1
+     419.  00:4010                      ;;            C-flag set when it ends with the STOP key
+     420.  00:4010                      ;; Registers: All
+     421.  00:4010  (00:00B1)           inlin equ 0x00b1
+     422.  00:4010                      
+     423.  00:4010                      ;; QINLIN
+     424.  00:4010                      ;; Address  : #00B4
+     425.  00:4010                      ;; Function : Prints a questionmark andone space
+     426.  00:4010                      ;; Output   : HL - for the starting address of the buffer -1
+     427.  00:4010                      ;;            C-flag set when it ends with the STOP key
+     428.  00:4010                      ;; Registers: All
+     429.  00:4010  (00:00B4)           qinlin equ 0x00b4
+     430.  00:4010                      
+     431.  00:4010                      ;; BREAKX
+     432.  00:4010                      ;; Address  : #00B7
+     433.  00:4010                      ;; Function : Tests status of CTRL-STOP
+     434.  00:4010                      ;; Output   : C-flag set when pressed
+     435.  00:4010                      ;; Registers: AF
+     436.  00:4010                      ;; Remark   : In this routine, interrupts are inhibited
+     437.  00:4010  (00:00B7)           breakx equ 0x00b7
+     438.  00:4010                      
+     439.  00:4010                      ;; ISCNTC
+     440.  00:4010                      ;; Address  : #00BA
+     441.  00:4010                      ;; Function : Tests status of SHIFT-STOP
+     442.  00:4010  (00:00BA)           iscntc equ 0x00ba
+     443.  00:4010                      
+     444.  00:4010                      ;; CKCNTC
+     445.  00:4010                      ;; Address  : #00BD
+     446.  00:4010                      ;; Function : Same as ISCNTC. used in Basic
+     447.  00:4010  (00:00BD)           ckcntc equ 0x00bd
+     448.  00:4010                      
+     449.  00:4010                      ;; BEEP
+     450.  00:4010                      ;; Address  : #00C0
+     451.  00:4010                      ;; Function : generates beep
+     452.  00:4010                      ;; Registers: All
+     453.  00:4010  (00:00C0)           beep equ 0x00c0
+     454.  00:4010                      
+     455.  00:4010                      ;; CLS
+     456.  00:4010                      ;; Address  : #00C3
+     457.  00:4010                      ;; Function : Clears the screen
+     458.  00:4010                      ;; Registers: AF, BC, DE
+     459.  00:4010                      ;; Remark   : Z-flag must be set to be able to run this routine
+     460.  00:4010                      ;;            XOR A will do fine most of the time
+     461.  00:4010  (00:00C3)           cls equ 0x00c3
+     462.  00:4010                      
+     463.  00:4010                      ;; POSIT
+     464.  00:4010                      ;; Address  : #00C6
+     465.  00:4010                      ;; Function : Plaatst cursor op aangegeven positie
+     466.  00:4010                      ;; Input    : H  - Y coordinate of cursor
+     467.  00:4010                      ;;            L  - X coordinate of cursor
+     468.  00:4010                      ;; Registers: AF
+     469.  00:4010  (00:00C6)           posit equ 0x00c6
+     470.  00:4010                      
+     471.  00:4010                      ;; FNKSB
+     472.  00:4010                      ;; Address  : #00C9
+     473.  00:4010                      ;; Function : Tests whether the function key display is active (FNKFLG)
+     474.  00:4010                      ;;            If so, displays them, otherwise erase them
+     475.  00:4010                      ;; Input    : FNKFLG (#FBCE)
+     476.  00:4010                      ;; Registers: All
+     477.  00:4010  (00:00C9)           fnksb equ 0x00c9
+     478.  00:4010                      
+     479.  00:4010                      ;; ERAFNK
+     480.  00:4010                      ;; Address  : #00CC
+     481.  00:4010                      ;; Function : Erase functionkey display
+     482.  00:4010                      ;; Registers: All
+     483.  00:4010  (00:00CC)           erafnk equ 0x00cc
+     484.  00:4010                      
+     485.  00:4010                      ;; DSPFNK
+     486.  00:4010                      ;; Address  : #00CF
+     487.  00:4010                      ;; Function : Displays the function keys
+     488.  00:4010                      ;; Registers: All
+     489.  00:4010  (00:00CF)           dspfnk equ 0x00cf
+     490.  00:4010                      
+     491.  00:4010                      ;; TOTEXT
+     492.  00:4010                      ;; Address  : #00D2
+     493.  00:4010                      ;; Function : Forces the screen to be in the text mode
+     494.  00:4010                      ;; Registers: All
+     495.  00:4010  (00:00D2)           totext equ 0x00d2
+     496.  00:4010                      
+     497.  00:4010                      ;;
+     498.  00:4010                      ;; Controller routines
+     499.  00:4010                      ;;
+     500.  00:4010                      
+     501.  00:4010                      ;; GTSTCK
+     502.  00:4010                      ;; Address  : #00D5
+     503.  00:4010                      ;; Function : Returns the joystick status
+     504.  00:4010                      ;; Input    : A  - Joystick number to test (0 = cursors, 1 = port 1, 2 = port 2)
+     505.  00:4010                      ;; Output   : A  - Direction
+     506.  00:4010                      ;; Registers: All
+     507.  00:4010  (00:00D5)           gtstck equ 0x00d5
+     508.  00:4010                      
+     509.  00:4010                      ;; GTTRIG
+     510.  00:4010                      ;; Address  : #00D8
+     511.  00:4010                      ;; Function : Returns current trigger status
+     512.  00:4010                      ;; Input    : A  - trigger button to test
+     513.  00:4010                      ;;            0 = spacebar
+     514.  00:4010                      ;;            1 = port 1, button A
+     515.  00:4010                      ;;            2 = port 2, button A
+     516.  00:4010                      ;;            3 = port 1, button B
+     517.  00:4010                      ;;            4 = port 2, button B
+     518.  00:4010                      ;; Output   : A  - #00 trigger button not pressed
+     519.  00:4010                      ;;                 #FF trigger button pressed
+     520.  00:4010                      ;; Registers: AF
+     521.  00:4010  (00:00D8)           gttrig equ 0x00d8
+     522.  00:4010                      
+     523.  00:4010                      ;; GTPAD
+     524.  00:4010                      ;; Address  : #00DB
+     525.  00:4010                      ;; Function : Returns current touch pad status
+     526.  00:4010                      ;; Input    : A  - Touchpad number to test
+     527.  00:4010                      ;; Output   : A  - Value
+     528.  00:4010                      ;; Registers: All
+     529.  00:4010  (00:00DB)           gtpad equ 0x00db
+     530.  00:4010                      
+     531.  00:4010                      ;; GTPDL
+     532.  00:4010                      ;; Address  : #00DE
+     533.  00:4010                      ;; Function : Returns currenct value of paddle
+     534.  00:4010                      ;; Input    : A  - Paddle number
+     535.  00:4010                      ;; Output   : A  - Value
+     536.  00:4010                      ;; Registers: All
+     537.  00:4010  (00:00DE)           gtpdl equ 0x00de
+     538.  00:4010                      
+     539.  00:4010                      ;;
+     540.  00:4010                      ;; Tape device routines
+     541.  00:4010                      ;;
+     542.  00:4010                      
+     543.  00:4010                      ;; TAPION
+     544.  00:4010                      ;; Address  : #00E1
+     545.  00:4010                      ;; Function : Reads the header block after turning the cassette motor on
+     546.  00:4010                      ;; Output   : C-flag set if failed
+     547.  00:4010                      ;; Registers: All
+     548.  00:4010  (00:00E1)           tapion equ 0x00e1
+     549.  00:4010                      
+     550.  00:4010                      ;; TAPIN
+     551.  00:4010                      ;; Address  : #00E4
+     552.  00:4010                      ;; Function : Read data from the tape
+     553.  00:4010                      ;; Output   : A  - read value
+     554.  00:4010                      ;;            C-flag set if failed
+     555.  00:4010                      ;; Registers: All
+     556.  00:4010  (00:00E4)           tapin equ 0x00e4
+     557.  00:4010                      
+     558.  00:4010                      ;; TAPIOF
+     559.  00:4010                      ;; Address  : #00E7
+     560.  00:4010                      ;; Function : Stops reading from the tape
+     561.  00:4010  (00:00E7)           tapiof equ 0x00e7
+     562.  00:4010                      
+     563.  00:4010                      ;; TAPOON
+     564.  00:4010                      ;; Address  : #00EA
+     565.  00:4010                      ;; Function : Turns on the cassette motor and writes the header
+     566.  00:4010                      ;; Input    : A  - #00 short header
+     567.  00:4010                      ;;             not #00 long header
+     568.  00:4010                      ;; Output   : C-flag set if failed
+     569.  00:4010                      ;; Registers: All
+     570.  00:4010  (00:00EA)           tapoon equ 0x00ea
+     571.  00:4010                      
+     572.  00:4010                      ;; TAPOUT
+     573.  00:4010                      ;; Address  : #00ED
+     574.  00:4010                      ;; Function : Writes data on the tape
+     575.  00:4010                      ;; Input    : A  - data to write
+     576.  00:4010                      ;; Output   : C-flag set if failed
+     577.  00:4010                      ;; Registers: All
+     578.  00:4010  (00:00ED)           tapout equ 0x00ed
+     579.  00:4010                      
+     580.  00:4010                      ;; TAPOOF
+     581.  00:4010                      ;; Address  : #00F0
+     582.  00:4010                      ;; Function : Stops writing on the tape
+     583.  00:4010  (00:00F0)           tapoof equ 0x00f0
+     584.  00:4010                      
+     585.  00:4010                      ;; STMOTR
+     586.  00:4010                      ;; Address  : #00F3
+     587.  00:4010                      ;; Function : Sets the cassette motor action
+     588.  00:4010                      ;; Input    : A  - #00 stop motor
+     589.  00:4010                      ;;                 #01 start motor
+     590.  00:4010                      ;;                 #FF reverse the current action
+     591.  00:4010                      ;; Registers: AF
+     592.  00:4010  (00:00F3)           stmotr equ 0x00f3
+     593.  00:4010                      
+     594.  00:4010                      ;;
+     595.  00:4010                      ;; Queue routines
+     596.  00:4010                      ;;
+     597.  00:4010                      
+     598.  00:4010                      ;; LFTQ
+     599.  00:4010                      ;; Address  : #00F6
+     600.  00:4010                      ;; Function : Gives number of bytes in queue
+     601.  00:4010                      ;; Output   : A  - length of queue in bytes
+     602.  00:4010                      ;; Remark   : Internal use
+     603.  00:4010  (00:00F6)           lftq equ 0x00f6
+     604.  00:4010                      
+     605.  00:4010                      ;; PUTQ
+     606.  00:4010                      ;; Address  : #00F9
+     607.  00:4010                      ;; Function : Put byte in queue
+     608.  00:4010                      ;; Remark   : Internal use
+     609.  00:4010  (00:00F9)           putq equ 0x00f9
+     610.  00:4010                      
+     611.  00:4010                      ;;
+     612.  00:4010                      ;; Graphic routines
+     613.  00:4010                      ;;
+     614.  00:4010                      
+     615.  00:4010                      ;; RIGHTC
+     616.  00:4010                      ;; Address  : #00FC
+     617.  00:4010                      ;; Function : Shifts screenpixel to the right
+     618.  00:4010                      ;; Registers: AF
+     619.  00:4010  (00:00FC)           rightc equ 0x00fc
+     620.  00:4010                      
+     621.  00:4010                      ;; LEFTC
+     622.  00:4010                      ;; Address  : #00FF
+     623.  00:4010                      ;; Function : Shifts screenpixel to the left
+     624.  00:4010                      ;; Registers: AF
+     625.  00:4010  (00:00FF)           leftc equ 0x00ff
+     626.  00:4010                      
+     627.  00:4010                      ;; UPC
+     628.  00:4010                      ;; Address  : #0102
+     629.  00:4010                      ;; Function : Shifts screenpixel up
+     630.  00:4010                      ;; Registers: AF
+     631.  00:4010  (00:0102)           upc equ 0x0102
+     632.  00:4010                      
+     633.  00:4010                      ;; TUPC
+     634.  00:4010                      ;; Address  : #0105
+     635.  00:4010                      ;; Function : Tests whether UPC is possible, if possible, execute UPC
+     636.  00:4010                      ;; Output   : C-flag set if operation would end outside the screen
+     637.  00:4010                      ;; Registers: AF
+     638.  00:4010  (00:0105)           tupc equ 0x0105
+     639.  00:4010                      
+     640.  00:4010                      ;; DOWNC
+     641.  00:4010                      ;; Address  : #0108
+     642.  00:4010                      ;; Function : Shifts screenpixel down
+     643.  00:4010                      ;; Registers: AF
+     644.  00:4010  (00:0108)           downc equ 0x0108
+     645.  00:4010                      
+     646.  00:4010                      ;; TDOWNC
+     647.  00:4010                      ;; Address  : #010B
+     648.  00:4010                      ;; Function : Tests whether DOWNC is possible, if possible, execute DOWNC
+     649.  00:4010                      ;; Output   : C-flag set if operation would end outside the screen
+     650.  00:4010                      ;; Registers: AF
+     651.  00:4010  (00:010B)           tdownc equ 0x010b
+     652.  00:4010                      
+     653.  00:4010                      ;; SCALXY
+     654.  00:4010                      ;; Address  : #010E
+     655.  00:4010                      ;; Function : Scales X and Y coordinates
+     656.  00:4010  (00:010E)           scalxy equ 0x010e
+     657.  00:4010                      
+     658.  00:4010                      ;; MAPXY
+     659.  00:4010                      ;; Address  : #0111
+     660.  00:4010                      ;; Function : Places cursor at current cursor address
+     661.  00:4010  (00:0111)           mapxy equ 0x0111
+     662.  00:4010                      
+     663.  00:4010                      ;; FETCHC
+     664.  00:4010                      ;; Address  : #0114
+     665.  00:4010                      ;; Function : Gets current cursor addresses mask pattern
+     666.  00:4010                      ;; Output   : HL - Cursor address
+     667.  00:4010                      ;;            A  - Mask pattern
+     668.  00:4010  (00:0114)           fetchc equ 0x0114
+     669.  00:4010                      
+     670.  00:4010                      ;; STOREC
+     671.  00:4010                      ;; Address  : #0117
+     672.  00:4010                      ;; Function : Record current cursor addresses mask pattern
+     673.  00:4010                      ;; Input    : HL - Cursor address
+     674.  00:4010                      ;;            A  - Mask pattern
+     675.  00:4010  (00:0117)           storec equ 0x0117
+     676.  00:4010                      
+     677.  00:4010                      ;; SETATR
+     678.  00:4010                      ;; Address  : #011A
+     679.  00:4010                      ;; Function : Set attribute byte
+     680.  00:4010  (00:011A)           setatr equ 0x011a
+     681.  00:4010                      
+     682.  00:4010                      ;; READC
+     683.  00:4010                      ;; Address  : #011D
+     684.  00:4010                      ;; Function : Reads attribute byte of current screenpixel
+     685.  00:4010  (00:011D)           readc equ 0x011d
+     686.  00:4010                      
+     687.  00:4010                      ;; SETC
+     688.  00:4010                      ;; Address  : #0120
+     689.  00:4010                      ;; Function : Returns currenct screenpixel of specificed attribute byte
+     690.  00:4010  (00:0120)           setc equ 0x0120
+     691.  00:4010                      
+     692.  00:4010                      ;; NSETCX
+     693.  00:4010                      ;; Address  : #0123
+     694.  00:4010                      ;; Function : Set horizontal screenpixels
+     695.  00:4010  (00:0123)           nsetcx equ 0x0123
+     696.  00:4010                      
+     697.  00:4010                      ;; GTASPC
+     698.  00:4010                      ;; Address  : #0126
+     699.  00:4010                      ;; Function : Gets screen relations
+     700.  00:4010                      ;; Output   : DE, HL
+     701.  00:4010                      ;; Registers: DE, HL
+     702.  00:4010  (00:0126)           gtaspc equ 0x0126
+     703.  00:4010                      
+     704.  00:4010                      ;; PNTINI
+     705.  00:4010                      ;; Address  : #0129
+     706.  00:4010                      ;; Function : Initalises the PAINT instruction
+     707.  00:4010  (00:0129)           pntini equ 0x0129
+     708.  00:4010                      
+     709.  00:4010                      ;; SCANR
+     710.  00:4010                      ;; Address  : #012C
+     711.  00:4010                      ;; Function : Scans screenpixels to the right
+     712.  00:4010  (00:012C)           scanr equ 0x012c
+     713.  00:4010                      
+     714.  00:4010                      ;; SCANL
+     715.  00:4010                      ;; Address  : #012F
+     716.  00:4010                      ;; Function : Scans screenpixels to the left
+     717.  00:4010  (00:012F)           scanl equ 0x012f
+     718.  00:4010                      
+     719.  00:4010                      ;;
+     720.  00:4010                      ;; Misc routines
+     721.  00:4010                      ;;
+     722.  00:4010                      
+     723.  00:4010                      ;; CHGCAP
+     724.  00:4010                      ;; Address  : #0132
+     725.  00:4010                      ;; Function : Alternates the CAP lamp status
+     726.  00:4010                      ;; Input    : A  - #00 is lamp on
+     727.  00:4010                      ;;             not #00 is lamp off
+     728.  00:4010                      ;; Registers: AF
+     729.  00:4010  (00:0132)           chgcap equ 0x0132
+     730.  00:4010                      
+     731.  00:4010                      ;; CHGSND
+     732.  00:4010                      ;; Address  : #0135
+     733.  00:4010                      ;; Function : Alternates the 1-bit sound port status
+     734.  00:4010                      ;; Input    : A  - #00 to turn off
+     735.  00:4010                      ;;             not #00 to turn on
+     736.  00:4010                      ;; Registers: AF
+     737.  00:4010  (00:0135)           chgsnd equ 0x0135
+     738.  00:4010                      
+     739.  00:4010                      ;; RSLREG
+     740.  00:4010                      ;; Address  : #0138
+     741.  00:4010                      ;; Function : Reads the primary slot register
+     742.  00:4010                      ;; Output   : A  - for the value which was read
+     743.  00:4010                      ;;            33221100
+     744.  00:4010                      ;;            ||||||- Pagina 0 (#0000-#3FFF)
+     745.  00:4010                      ;;            ||||--- Pagina 1 (#4000-#7FFF)
+     746.  00:4010                      ;;            ||----- Pagina 2 (#8000-#BFFF)
+     747.  00:4010                      ;;            ------- Pagina 3 (#C000-#FFFF)
+     748.  00:4010                      ;; Registers: A
+     749.  00:4010  (00:0138)           rslreg equ 0x0138
+     750.  00:4010                      
+     751.  00:4010                      ;; WSLREG
+     752.  00:4010                      ;; Address  : #013B
+     753.  00:4010                      ;; Function : Writes value to the primary slot register
+     754.  00:4010                      ;; Input    : A  - value value to (see RSLREG)
+     755.  00:4010  (00:013B)           wslreg equ 0x013b
+     756.  00:4010                      
+     757.  00:4010                      ;; RDVDP
+     758.  00:4010                      ;; Address  : #013E
+     759.  00:4010                      ;; Function : Reads VDP status register
+     760.  00:4010                      ;; Output   : A  - Value which was read
+     761.  00:4010                      ;; Registers: A
+     762.  00:4010  (00:013E)           rdvdp equ 0x013e
+     763.  00:4010                      
+     764.  00:4010                      ;; SNSMAT
+     765.  00:4010                      ;; Address  : #0141
+     766.  00:4010                      ;; Function : Returns the value of the specified line from the keyboard matrix
+     767.  00:4010                      ;; Input    : A  - for the specified line
+     768.  00:4010                      ;; Output   : A  - for data (the bit corresponding to the pressed key will be 0)
+     769.  00:4010                      ;; Registers: AF
+     770.  00:4010  (00:0141)           snsmat equ 0x0141
+     771.  00:4010                      
+     772.  00:4010                      ;; PHYDIO
+     773.  00:4010                      ;; Address  : #0144
+     774.  00:4010                      ;; Function : Executes I/O for mass-storage media like diskettes
+     775.  00:4010                      ;; Input    : A  - Drive number (0 = A:, 1 = B:, etc.)
+     776.  00:4010                      ;;            B  - Number of sectors
+     777.  00:4010                      ;;            C  - Media ID of the disk
+     778.  00:4010                      ;;            DE - Begin sector
+     779.  00:4010                      ;;            HL - Begin address in memory
+     780.  00:4010                      ;;            F  - Set carry to write, unset carry to read
+     781.  00:4010                      ;; Output   : A  - Error code (only when writing)
+     782.  00:4010                      ;;                 0 = Write protected
+     783.  00:4010                      ;;                 2 = Not ready
+     784.  00:4010                      ;;                 4 = Data error
+     785.  00:4010                      ;;                 6 = Seek error
+     786.  00:4010                      ;;                 8 = Record not found
+     787.  00:4010                      ;;                 10 = Write error
+     788.  00:4010                      ;;                 12 = Bad parameter
+     789.  00:4010                      ;;                 14 = Out of memory
+     790.  00:4010                      ;;                 16 = Other error
+     791.  00:4010                      ;;            B  - Number of sectors actually written or read
+     792.  00:4010                      ;; Registers: All
+     793.  00:4010                      ;; Remark   : Before the call is called, the Z-flag must be reset, and the execution
+     794.  00:4010                      ;;            address which was in HL must be at the last stack address
+     795.  00:4010                      ;;            By the way: In minimum configuration only a HOOK is available
+     796.  00:4010  (00:0144)           phydio equ 0x0144
+     797.  00:4010                      
+     798.  00:4010                      ;; FORMAT
+     799.  00:4010                      ;; Address  : #0147
+     800.  00:4010                      ;; Function : Initialises mass-storage media like formatting of diskettes
+     801.  00:4010                      ;; Registers: All
+     802.  00:4010                      ;; Remark   : In minimum configuration only a HOOK is available
+     803.  00:4010  (00:0147)           format equ 0x0147
+     804.  00:4010                      
+     805.  00:4010                      ;; ISFLIO
+     806.  00:4010                      ;; Address  : #014A
+     807.  00:4010                      ;; Function : Tests if I/O to device is taking place
+     808.  00:4010                      ;; Output   : A  - #00 if not taking place
+     809.  00:4010                      ;;             not #00 if taking place
+     810.  00:4010                      ;; Registers: AF
+     811.  00:4010  (00:014A)           isflio equ 0x014a
+     812.  00:4010                      
+     813.  00:4010                      ;; OUTDLP
+     814.  00:4010                      ;; Address  : #014D
+     815.  00:4010                      ;; Function : Printer output
+     816.  00:4010                      ;; Input    : A  - code to print
+     817.  00:4010                      ;; Registers: F
+     818.  00:4010                      ;; Remark   : Differences with LPTOUT:
+     819.  00:4010                      ;;            1. TAB is expanded to spaces
+     820.  00:4010                      ;;            2. For non-MSX printers, Hiragana is transformed to katakana
+     821.  00:4010                      ;;               and graphic characters are transformed to 1-byte characters
+     822.  00:4010                      ;;            3. If failed, device I/O error occurs
+     823.  00:4010  (00:014D)           outdlp equ 0x014d
+     824.  00:4010                      
+     825.  00:4010                      ;; GETVCP
+     826.  00:4010                      ;; Address  : #0150
+     827.  00:4010                      ;; Function : Returns pointer to play queue
+     828.  00:4010                      ;; Input    : A  - Channel number
+     829.  00:4010                      ;; Output   : HL - Pointer
+     830.  00:4010                      ;; Registers: AF
+     831.  00:4010                      ;; Remark   : Only used to play music in background
+     832.  00:4010  (00:0150)           getvcp equ 0x0150
+     833.  00:4010                      
+     834.  00:4010                      ;; GETVC2
+     835.  00:4010                      ;; Address  : #0153
+     836.  00:4010                      ;; Function : Returns pointer to variable in queue number VOICEN (byte op #FB38)
+     837.  00:4010                      ;; Input    : L  - Pointer in play buffer
+     838.  00:4010                      ;; Output   : HL - Pointer
+     839.  00:4010                      ;; Registers: AF
+     840.  00:4010  (00:0153)           getvc2 equ 0x0153
+     841.  00:4010                      
+     842.  00:4010                      ;; KILBUF
+     843.  00:4010                      ;; Address  : #0156
+     844.  00:4010                      ;; Function : Clear keyboard buffer
+     845.  00:4010                      ;; Registers: HL
+     846.  00:4010  (00:0156)           kilbuf equ 0x0156
+     847.  00:4010                      
+     848.  00:4010                      ;; CALBAS
+     849.  00:4010                      ;; Address  : #0159
+     850.  00:4010                      ;; Function : Executes inter-slot call to the routine in BASIC interpreter
+     851.  00:4010                      ;; Input    : IX - for the calling address
+     852.  00:4010                      ;; Output   : Depends on the called routine
+     853.  00:4010                      ;; Registers: Depends on the called routine
+     854.  00:4010                      ;; MSX 2 BIOS Entries
+     855.  00:4010  (00:0159)           calbas equ 0x0159
+     856.  00:4010                      
+     857.  00:4010                      ;; SUBROM
+     858.  00:4010                      ;; Address  : #015C
+     859.  00:4010                      ;; Function : Calls a routine in SUB-ROM
+     860.  00:4010                      ;; Input    : IX - Address of routine in SUB-ROM
+     861.  00:4010                      ;; Output   : Depends on the routine
+     862.  00:4010                      ;; Registers: Alternative registers, IY
+     863.  00:4010                      ;; Remark   : Use of EXTROM or CALSLT is more convenient.
+     864.  00:4010                      ;;            In IX a extra value to the routine can be given by first
+     865.  00:4010                      ;;            PUSH'ing it to the stack.
+     866.  00:4010  (00:015C)           subrom equ 0x015c
+     867.  00:4010                      
+     868.  00:4010                      ;; EXTROM
+     869.  00:4010                      ;; Address  : #015F
+     870.  00:4010                      ;; Function : Calls a routine in SUB-ROM. Most common way
+     871.  00:4010                      ;; Input    : IX - Address of routine in SUB-ROM
+     872.  00:4010                      ;; Output   : Depends on the routine
+     873.  00:4010                      ;; Registers: Alternative registers, IY
+     874.  00:4010                      ;; Remark   : Use: LD IX,address
+     875.  00:4010                      ;;                 CALL EXTROM
+     876.  00:4010  (00:015F)           extrom equ 0x015f
+     877.  00:4010                      
+     878.  00:4010                      ;; CHKSLZ
+     879.  00:4010                      ;; Address  : #0162
+     880.  00:4010                      ;; Function : Search slots for SUB-ROM
+     881.  00:4010                      ;; Registers: Alles
+     882.  00:4010  (00:0162)           chkslz equ 0x0162
+     883.  00:4010                      
+     884.  00:4010                      ;; CHKNEW
+     885.  00:4010                      ;; Address  : #0165
+     886.  00:4010                      ;; Function : Tests screen mode
+     887.  00:4010                      ;; Output   : C-flag set if screenmode = 5, 6, 7 or 8
+     888.  00:4010                      ;; Registers: AF
+     889.  00:4010  (00:0165)           chknew equ 0x0165
+     890.  00:4010                      
+     891.  00:4010                      ;; EOL
+     892.  00:4010                      ;; Address  : #0168
+     893.  00:4010                      ;; Function : Deletes to the end of the line
+     894.  00:4010                      ;; Input    : H  - x-coordinate of cursor
+     895.  00:4010                      ;;            L  - y-coordinate of cursor
+     896.  00:4010                      ;; Registers: All
+     897.  00:4010  (00:0168)           eol equ 0x0168
+     898.  00:4010                      
+     899.  00:4010                      ;; BIGFIL
+     900.  00:4010                      ;; Address  : #016B
+     901.  00:4010                      ;; Function : Same function as FILVRM (total VRAM can be reached).
+     902.  00:4010                      ;; Input    : HL - address
+     903.  00:4010                      ;;            BC - length
+     904.  00:4010                      ;;            A  - data
+     905.  00:4010                      ;; Registers: AF,BC
+     906.  00:4010  (00:016B)           bigfil equ 0x016b
+     907.  00:4010                      
+     908.  00:4010                      ;; NSETRD
+     909.  00:4010                      ;; Address  : #016E
+     910.  00:4010                      ;; Function : Same function as SETRD.(with full 16 bits VRAM-address)
+     911.  00:4010                      ;; Input    : HL - VRAM address
+     912.  00:4010                      ;; Registers: AF
+     913.  00:4010  (00:016E)           nsetrd equ 0x016e
+     914.  00:4010                      
+     915.  00:4010                      ;; NSTWRT
+     916.  00:4010                      ;; Address  : #0171
+     917.  00:4010                      ;; Function : Same function as SETWRT.(with full 16 bits VRAM-address)
+     918.  00:4010                      ;; Input    : HL - VRAM address
+     919.  00:4010                      ;; Registers: AF
+     920.  00:4010  (00:0171)           nstwrt equ 0x0171
+     921.  00:4010                      
+     922.  00:4010                      ;; NRDVRM
+     923.  00:4010                      ;; Address  : #0174
+     924.  00:4010                      ;; Function : Reads VRAM like in RDVRM.(with full 16 bits VRAM-address)
+     925.  00:4010                      ;; Input    : HL - VRAM address
+     926.  00:4010                      ;; Output   : A  - Read value
+     927.  00:4010                      ;; Registers: F
+     928.  00:4010  (00:0174)           nrdvrm equ 0x0174
+     929.  00:4010                      
+     930.  00:4010                      ;; NWRVRM
+     931.  00:4010                      ;; Address  : #0177
+     932.  00:4010                      ;; Function : Writes to VRAM like in WRTVRM.(with full 16 bits VRAM-address)
+     933.  00:4010                      ;; Input    : HL - VRAM address
+     934.  00:4010                      ;;            A  - Value to write
+     935.  00:4010                      ;; Registers: AF
+     936.  00:4010                      ;; MSX 2+ BIOS Entries
+     937.  00:4010  (00:0177)           nwrvrm equ 0x0177
+     938.  00:4010                      
+     939.  00:4010                      ;; RDBTST
+     940.  00:4010                      ;; Address  : #017A
+     941.  00:4010                      ;; Function : Read value of I/O poort #F4
+     942.  00:4010                      ;; Input    : none
+     943.  00:4010                      ;; Output   : A = value read
+     944.  00:4010                      ;; Registers: AF
+     945.  00:4010  (00:017A)           rdbtst equ 0x017a
+     946.  00:4010                      
+     947.  00:4010                      ;; WRBTST
+     948.  00:4010                      ;; Address  : #017D
+     949.  00:4010                      ;; Function : Write value to I/O poort #F4
+     950.  00:4010                      ;; Input    : A = value to write
+     951.  00:4010                      ;;            Bit 7 shows the MSX 2+ startup screen when reset, otherwise it's skipped.
+     952.  00:4010                      ;; Output   : none
+     953.  00:4010                      ;; Registers: none
+     954.  00:4010                      ;; MSX turbo R BIOS Entries
+     955.  00:4010  (00:017D)           wrbtst equ 0x017d
+     956.  00:4010                      
+     957.  00:4010                      ;; CHGCPU
+     958.  00:4010                      ;; Address  : #0180
+     959.  00:4010                      ;; Function : Changes CPU mode
+     960.  00:4010                      ;; Input    : A = LED 0 0 0 0 0 x x
+     961.  00:4010                      ;;                 |            0 0 = Z80 (ROM) mode
+     962.  00:4010                      ;;                 |            0 1 = R800 ROM  mode
+     963.  00:4010                      ;;                 |            1 0 = R800 DRAM mode
+     964.  00:4010                      ;;                LED indicates whether the Turbo LED is switched with the CPU
+     965.  00:4010                      ;; Output   : none
+     966.  00:4010                      ;; Registers: none
+     967.  00:4010  (00:0180)           chgcpu equ 0x0180
+     968.  00:4010                      
+     969.  00:4010                      ;; GETCPU
+     970.  00:4010                      ;; Address  : #0183
+     971.  00:4010                      ;; Function : Returns current CPU mode
+     972.  00:4010                      ;; Input    : none
+     973.  00:4010                      ;; Output   : A = 0 0 0 0 0 0 x x
+     974.  00:4010                      ;;                            0 0 = Z80 (ROM) mode
+     975.  00:4010                      ;;                            0 1 = R800 ROM  mode
+     976.  00:4010                      ;;                            1 0 = R800 DRAM mode
+     977.  00:4010                      ;; Registers: AF
+     978.  00:4010  (00:0183)           getcpu equ 0x0183
+     979.  00:4010                      
+     980.  00:4010                      ;; PCMPLY
+     981.  00:4010                      ;; Address  : #0186
+     982.  00:4010                      ;; Function : Plays specified memory area through the PCM chip
+     983.  00:4010                      ;; Input    : A = v 0 0 0 0 0 x x
+     984.  00:4010                      ;;                |           | |
+     985.  00:4010                      ;;                |           +-+-- Quality parameter (Speed: 0 = Fast)
+     986.  00:4010                      ;;                +---------------- VRAM usage flag
+     987.  00:4010                      ;;            HL= Start address in RAM or VRAM
+     988.  00:4010                      ;;            BC= Length of area to play
+     989.  00:4010                      ;;            D = Bit 0 = Bit 17 of area length when using VRAM
+     990.  00:4010                      ;;            E = Bit 0 = Bit 17 os start address when using VRAM
+     991.  00:4010                      ;; Output   : C-flag set when aborted with CTRL-STOP
+     992.  00:4010                      ;; Registers: all
+     993.  00:4010  (00:0186)           pcmply equ 0x0186
+     994.  00:4010                      
+     995.  00:4010                      ;; PCMREC
+     996.  00:4010                      ;; Address  : #0189
+     997.  00:4010                      ;; Function : Records audio using the PCM chip into the specified memory area
+     998.  00:4010                      ;; Input    : A = v t t t t c x x
+     999.  00:4010                      ;;                | | | | | | | |
+    1000.  00:4010                      ;;                | | | | | | +-+-- Quality parameter (Speed: 0 = Fast)
+    1001.  00:4010                      ;;                | | | | | +------ Zero-data compression
+    1002.  00:4010                      ;;                | +-+-+-+-------- Treshold
+    1003.  00:4010                      ;;                +---------------- VRAM usage flag
+    1004.  00:4010                      ;;            HL= Start address in RAM or VRAM
+    1005.  00:4010                      ;;            BC= Length of area to play
+    1006.  00:4010                      ;;            D = Bit 0 = Bit 17 of area length when using VRAM
+    1007.  00:4010                      ;;            E = Bit 0 = Bit 17 os start address when using VRAM
+    1008.  00:4010                      ;; Output   : C-flag set when aborted with CTRL-STOP
+    1009.  00:4010                      ;; Registers: all
+    1010.  00:4010  (00:0189)           pcmrec equ 0x0189
+      18   00:4010                        include sysvar.asm
+       1.  00:4010                        ;; http://fms.komkon.org/MSX/Docs/SysArea.txt
+       2.  00:4010                      
+       3.  00:4010                        module sysvar
+       4.  00:4010                      
+       5.  00:4010  (00:F2E1)           drive   equ 0xf2e1 ;; current drive
+       6.  00:4010  (00:F347)           nmbdrv  equ 0xf347 ;; total number of drivies
+       7.  00:4010  (00:F355)           dpblst  equ 0xf355 ;; list of drive parameters block
+       8.  00:4010  (00:F368)           setrom  equ 0xf368 ;; set disk-basic rom
+       9.  00:4010  (00:F36B)           setram  equ 0xf36b ;; set system ram configuration
+      10.  00:4010  (00:F36E)           sltmov  equ 0xf36e ;; inter slot move
+      11.  00:4010  (00:F37D)           rombdos equ 0xf37d ;; rom bdos vector
+      12.  00:4010  (00:F380)           rdprim  equ 0xf380 ;; read from basic slot
+      13.  00:4010  (00:F385)           wrprim  equ 0xf385 ;; write to basic slot
+      14.  00:4010  (00:F38C)           clprim  equ 0xf38c ;; call basic slot
+      15.  00:4010  (00:F39A)           usrtab  equ 0xf39a ;; usr function starting addresses
+      16.  00:4010  (00:F3AE)           linl40  equ 0xf3ae ;; screen width per line in screen 0
+      17.  00:4010  (00:F3AF)           linl32  equ 0xf3af ;; screen width per line in screen 1
+      18.  00:4010  (00:F3B0)           linlen  equ 0xf3b0 ;; current screen width per line
+      19.  00:4010  (00:F3B1)           crtcnt  equ 0xf3b1 ;; number of lines of current screen
+      20.  00:4010  (00:F3B2)           clmlst  equ 0xf3b2 ;; horizontal location in the case that items are divided by commas in print statement
+      21.  00:4010  (00:F3B3)           txtnam  equ 0xf3b3 ;; pattern name tabte
+      22.  00:4010  (00:F3B5)           txtcol  equ 0xf3b5 ;; color table
+      23.  00:4010  (00:F3B7)           txtcgp  equ 0xf3b7 ;; pattern ganarator table
+      24.  00:4010  (00:F3B9)           txtatr  equ 0xf3b9 ;; unused
+      25.  00:4010  (00:F3BB)           txtpat  equ 0xf3bb ;; unused
+      26.  00:4010  (00:F3BD)           t32nam  equ 0xf3bd ;; pattern name tabte
+      27.  00:4010  (00:F3BF)           t32col  equ 0xf3bf ;; color table
+      28.  00:4010  (00:F3C1)           t32cgp  equ 0xf3c1 ;; pattern ganarator table
+      29.  00:4010  (00:F3C3)           t32atr  equ 0xf3c3 ;; sprite attribute table
+      30.  00:4010  (00:F3C5)           t32pat  equ 0xf3c5 ;; sprite generator table
+      31.  00:4010  (00:F3C7)           grpnam  equ 0xf3c7 ;; pattern name tabte
+      32.  00:4010  (00:F3C9)           grpcol  equ 0xf3c9 ;; color table
+      33.  00:4010  (00:F3CB)           grpcgp  equ 0xf3cb ;; pattern ganarator table
+      34.  00:4010  (00:F3CD)           grpatr  equ 0xf3cd ;; sprite attribute table
+      35.  00:4010  (00:F3CF)           grppat  equ 0xf3cf ;; sprite generator table
+      36.  00:4010  (00:F3D1)           mltnam  equ 0xf3d1 ;; pattern name tabte
+      37.  00:4010  (00:F3D3)           mltcol  equ 0xf3d3 ;; color table
+      38.  00:4010  (00:F3D5)           mltcgp  equ 0xf3d5 ;; pattern ganarator table
+      39.  00:4010  (00:F3D7)           mltatr  equ 0xf3d7 ;; sprite attribute table
+      40.  00:4010  (00:F3D9)           mltpat  equ 0xf3d9 ;; sprite generator table
+      41.  00:4010  (00:F3DB)           cliksw  equ 0xf3db ;; key click switch
+      42.  00:4010  (00:F3DC)           csry    equ 0xf3dc ;; y-coordinate of cursor
+      43.  00:4010  (00:F3DD)           csrx    equ 0xf3dd ;; x-coordinate of cursor
+      44.  00:4010  (00:F3DE)           cnsdfg  equ 0xf3de ;; functon key display switch
+      45.  00:4010  (00:F3DF)           rg0sav  equ 0xf3df
+      46.  00:4010  (00:F3E0)           rg1sav  equ 0xf3e0
+      47.  00:4010  (00:F3E1)           rg2sav  equ 0xf3e1
+      48.  00:4010  (00:F3E2)           rg3sav  equ 0xf3e2
+      49.  00:4010  (00:F3E3)           rg4sav  equ 0xf3e3
+      50.  00:4010  (00:F3E4)           rg5sav  equ 0xf3e4
+      51.  00:4010  (00:F3E5)           rg6sav  equ 0xf3e5
+      52.  00:4010  (00:F3E6)           rg7sav  equ 0xf3e6
+      53.  00:4010  (00:F3E7)           statfl  equ 0xf3e7 ;; stores vdp status (msx2- vdp status register 0
+      54.  00:4010  (00:F3E8)           trgflg  equ 0xf3e8 ;; stories trigger button status of joystick
+      55.  00:4010  (00:F3E9)           forclr  equ 0xf3e9 ;; foreground colour
+      56.  00:4010  (00:F3EA)           bakclr  equ 0xf3ea ;; background colour
+      57.  00:4010  (00:F3EB)           bdrclr  equ 0xf3eb ;; border colour
+      58.  00:4010  (00:F3EC)           maxupd  equ 0xf3ec ;; jmp 0000 (used by circle statement
+      59.  00:4010  (00:F3EF)           minupd  equ 0xf3ef ;; jmp 0000 (used by circle statement
+      60.  00:4010  (00:F3F2)           atrbyt  equ 0xf3f2 ;; color code in csing graphic
+      61.  00:4010  (00:F3F3)           queues  equ 0xf3f3 ;; points to queue table at the execution of play st.
+      62.  00:4010  (00:F3F5)           frcnew  equ 0xf3f5 ;; db 255
+      63.  00:4010  (00:F3F6)           scncnt  equ 0xf3f6 ;; interval for the key scan
+      64.  00:4010  (00:F3F7)           repcnt  equ 0xf3f7 ;; delay until the auto-repeat of the key begins
+      65.  00:4010  (00:F3F8)           putpnt  equ 0xf3f8 ;; dw keybuf points to adress to write in the key buffer
+      66.  00:4010  (00:F3FA)           getpnt  equ 0xf3fa ;; dw keybuf points to adress to read from the key buffer
+      67.  00:4010  (00:F3FC)           cs120   equ 0xf3fc ;; reading parameters
+      68.  00:4010  (00:F406)           low     equ 0xf406
+      69.  00:4010  (00:F408)           high    equ 0xf408
+      70.  00:4010  (00:F40A)           header  equ 0xf40a
+      71.  00:4010  (00:F40B)           aspct1  equ 0xf40b ;; 256/aspect ratio
+      72.  00:4010  (00:F40D)           aspct2  equ 0xf40d ;; 256*aspect ratio
+      73.  00:4010  (00:F40F)           endpgm  equ 0xf40f ;; db ":" dummy program end for resume next st.
+      74.  00:4010  (00:F414)           errflg  equ 0xf414 ;; error number
+      75.  00:4010  (00:F415)           lptpos  equ 0xf415 ;; position of printer head
+      76.  00:4010  (00:F416)           prtflg  equ 0xf416 ;; flag whether to send to printer
+      77.  00:4010  (00:F417)           ntmsxp  equ 0xf417 ;; =0 if msx printer
+      78.  00:4010  (00:F418)           rawprt  equ 0xf418 ;; <>0 if printing is in 'raw mode'
+      79.  00:4010  (00:F419)           vlzadr  equ 0xf419 ;; address of character replaced by val
+      80.  00:4010  (00:F41B)           vlzdat  equ 0xf41b ;; character replaced with 0 by val
+      81.  00:4010  (00:F41C)           curlin  equ 0xf41c ;; current execution line number of basic
+      82.  00:4010  (00:F41F)           kbuf    equ 0xf41f ;; crunch buffer;translated into intermediate language from buf
+      83.  00:4010  (00:F55D)           bufmin  equ 0xf55d ;; used in input st.
+      84.  00:4010  (00:F55E)           buf     equ 0xf55e ;; buffer to store characters typed( in ascii code
+      85.  00:4010  (00:F660)           endbuf  equ 0xf660 ;; preventoverflow of buf
+      86.  00:4010  (00:F661)           ttypos  equ 0xf661 ;; virtual cursor location internally retained by basic
+      87.  00:4010  (00:F662)           dimflg  equ 0xf662 ;; array flag
+      88.  00:4010  (00:F663)           valtyp  equ 0xf663 ;; type indicator
+      89.  00:4010  (00:F664)           oprtyp  equ 0xf664 ;; store operator number in the extended momentarily before operator application
+      90.  00:4010  (00:F664)           dores   equ 0xf664 ;; indicates whether stored word can be crunched
+      91.  00:4010  (00:F665)           donum   equ 0xf665 ;; flag for crunch
+      92.  00:4010  (00:F666)           contxt  equ 0xf666 ;; text address used by cnrget
+      93.  00:4010  (00:F668)           consav  equ 0xf668 ;; store token of constant after calling chrget
+      94.  00:4010  (00:F669)           contyp  equ 0xf669 ;; type of stored constant
+      95.  00:4010  (00:F66A)           conlo   equ 0xf66a ;; valu of stored constant
+      96.  00:4010  (00:F672)           memsiz  equ 0xf672 ;; highest location in memory used by basic
+      97.  00:4010  (00:F674)           stktop  equ 0xf674 ;; top location to be used for the stack
+      98.  00:4010  (00:F676)           txttab  equ 0xf676 ;; starting address of basic text area
+      99.  00:4010  (00:F678)           temppt  equ 0xf678 ;; starting address of unused area of temporary descriptor
+     100.  00:4010  (00:F67A)           tempst  equ 0xf67a ;; temporary descriptors
+     101.  00:4010  (00:F698)           dsctmp  equ 0xf698 ;; string descriptor wich is the result of string fun.
+     102.  00:4010  (00:F69B)           fretop  equ 0xf69b ;; starting address of unused area of string area
+     103.  00:4010  (00:F69D)           temp3   equ 0xf69d ;; used for garbage collection or by usr function
+     104.  00:4010  (00:F69F)           temp8   equ 0xf69f ;; used for garbage collection
+     105.  00:4010  (00:F6A1)           endfor  equ 0xf6a1 ;; next address of for st.
+     106.  00:4010  (00:F6A3)           datlin  equ 0xf6a3 ;; line number of data st.read by read st.
+     107.  00:4010  (00:F6A5)           subflg  equ 0xf6a5 ;; flag for array for usr fun.
+     108.  00:4010  (00:F6A6)           usflg   equ 0xf6a6
+     109.  00:4010  (00:F6A6)           flginp  equ 0xf6a6 ;; flag for input or read
+     110.  00:4010  (00:F6A7)           temp    equ 0xf6a7 ;; location for temporary reservation for st.code
+     111.  00:4010  (00:F6A9)           ptrflg  equ 0xf6a9 ;; =0 if no line number converted to pointers
+     112.  00:4010  (00:F6AA)           autflg  equ 0xf6aa ;; auto mode flag
+     113.  00:4010  (00:F6AB)           autlin  equ 0xf6ab ;; current line number for auto
+     114.  00:4010  (00:F6AD)           autinc  equ 0xf6ad ;; increment for auto
+     115.  00:4010  (00:F6AF)           savtxt  equ 0xf6af ;; text pointer for resume
+     116.  00:4010  (00:F6B1)           savstk  equ 0xf6b1 ;; save stack when error occurs
+     117.  00:4010  (00:F6B3)           errlin  equ 0xf6b3 ;; line where last error
+     118.  00:4010  (00:F6B5)           dot     equ 0xf6b5 ;; current line for edit & list
+     119.  00:4010  (00:F6B7)           errtxt  equ 0xf6b7 ;; text pointer for use by resume
+     120.  00:4010  (00:F6B9)           onelin  equ 0xf6b9 ;; line to go when error
+     121.  00:4010  (00:F6BB)           oneflg  equ 0xf6bb ;; =1 if executing an error trap routine
+     122.  00:4010  (00:F6BC)           temp2   equ 0xf6bc
+     123.  00:4010  (00:F6BE)           oldlin  equ 0xf6be ;; old line number set up ^c ...
+     124.  00:4010  (00:F6C0)           oldtxt  equ 0xf6c0 ;; points st. to be executed next
+     125.  00:4010  (00:F6C2)           vartab  equ 0xf6c2 ;; pointer to start of variable space
+     126.  00:4010  (00:F6C4)           arytab  equ 0xf6c4 ;; pointer to begging of array table
+     127.  00:4010  (00:F6C6)           strend  equ 0xf6c6 ;; end of storage in use
+     128.  00:4010  (00:F6C8)           datptr  equ 0xf6c8 ;; data pointer
+     129.  00:4010  (00:F6CA)           deftbl  equ 0xf6ca ;; default valtype for each letter
+     130.  00:4010  (00:F6E4)           prmstk  equ 0xf6e4 ;; previous definition block on stack
+     131.  00:4010  (00:F6E6)           prmlen  equ 0xf6e6 ;; number of bytes of objective table
+     132.  00:4010  (00:F6E8)           parm1   equ 0xf6e8 ;; objective prameter definition table
+     133.  00:4010  (00:F74C)           prmprv  equ 0xf74c ;; pointer to previous parameter block
+     134.  00:4010  (00:F74E)           prmln2  equ 0xf74e ;; size of parameter block
+     135.  00:4010  (00:F750)           parm2   equ 0xf750 ;; for parameter storage
+     136.  00:4010  (00:F7B4)           prmflg  equ 0xf7b4 ;; flag to indicate whether parm1 was searching
+     137.  00:4010  (00:F7B5)           aryta2  equ 0xf7b5 ;; end point of search
+     138.  00:4010  (00:F7B7)           nofuns  equ 0xf7b7 ;; 0 if no function active
+     139.  00:4010  (00:F7B8)           temp9   equ 0xf7b8 ;; location of temporary storage for garbage collection
+     140.  00:4010  (00:F7BA)           funact  equ 0xf7ba ;; count of active functions
+     141.  00:4010  (00:F7BC)           swptmp  equ 0xf7bc ;; value of first  variable in swap st.
+     142.  00:4010  (00:F7C4)           trcflg  equ 0xf7c4 ;; 0 means no trace
+     143.  00:4010  (00:F7C5)           fbuffr  equ 0xf7c5 ;; buffer for fout
+     144.  00:4010  (00:F7F0)           dectmp  equ 0xf7f0 ;; used to transform decimal integer to floating point number
+     145.  00:4010  (00:F7F2)           dectm2  equ 0xf7f2 ;; used at division routine execution
+     146.  00:4010  (00:F7F4)           deccnt  equ 0xf7f4 ;; used at division routine execution
+     147.  00:4010  (00:F7F6)           dac     equ 0xf7f6 ;; decimal accumulator
+     148.  00:4010  (00:F806)           hold8   equ 0xf806 ;; registers for decimal multiplication
+     149.  00:4010  (00:F836)           hold2   equ 0xf836
+     150.  00:4010  (00:F83E)           hold    equ 0xf83e
+     151.  00:4010  (00:F847)           arg     equ 0xf847 ;; area to set the value to be calculate with dac
+     152.  00:4010  (00:F857)           rndx    equ 0xf857 ;; last random number
+     153.  00:4010  (00:F85F)           maxfil  equ 0xf85f ;; high legal file number
+     154.  00:4010  (00:F860)           filtab  equ 0xf860 ;; starting address of of file data area
+     155.  00:4010  (00:F862)           nulbuf  equ 0xf862 ;; points to file 0 buffer ( used in save & load st.
+     156.  00:4010  (00:F864)           ptrfil  equ 0xf864 ;; points to file data of currently accessing file
+     157.  00:4010  (00:F866)           runflg  equ 0xf866 ;; non-zero for run after load
+     158.  00:4010  (00:F866)           filnam  equ 0xf866 ;; name for files, name & others
+     159.  00:4010  (00:F871)           filnm2  equ 0xf871 ;; second name for name
+     160.  00:4010  (00:F87C)           nlonly  equ 0xf87c ;; <>0 when loading program
+     161.  00:4010  (00:F87D)           savend  equ 0xf87d ;; end address for bsave
+     162.  00:4010  (00:F87F)           fnkstr  equ 0xf87f ;; function key area
+     163.  00:4010  (00:F91F)           cgpnt   equ 0xf91f ;; address to store charecter font in rom
+     164.  00:4010  (00:F922)           nambas  equ 0xf922 ;; base address of current pattern name table
+     165.  00:4010  (00:F924)           cgpbas  equ 0xf924 ;; base address of current pattern generator table
+     166.  00:4010  (00:F926)           patbas  equ 0xf926 ;; base address of current sprite generator table
+     167.  00:4010  (00:F928)           atrbas  equ 0xf928 ;; base address of current sprite attribute table
+     168.  00:4010  (00:F92A)           cloc    equ 0xf92a
+     169.  00:4010  (00:F92C)           cmask   equ 0xf92c
+     170.  00:4010  (00:F92D)           mindel  equ 0xf92d
+     171.  00:4010  (00:F92F)           maxdel  equ 0xf92f
+     172.  00:4010  (00:F931)           aspect  equ 0xf931 ;; aspect ratio of the circle; set by <ratio> of circle
+     173.  00:4010  (00:F933)           cencnt  equ 0xf933 ;; end count
+     174.  00:4010  (00:F935)           clinef  equ 0xf935 ;; flag to draw line to centre
+     175.  00:4010  (00:F936)           cnpnts  equ 0xf936 ;; point to be plottted
+     176.  00:4010  (00:F938)           cplotf  equ 0xf938 ;; plot polarity flag
+     177.  00:4010  (00:F939)           cpcnt   equ 0xf939 ;; 1/8 of number of points in circle
+     178.  00:4010  (00:F93B)           cpcnt8  equ 0xf93b
+     179.  00:4010  (00:F93D)           crcsum  equ 0xf93d
+     180.  00:4010  (00:F93F)           cstcnt  equ 0xf93f
+     181.  00:4010  (00:F941)           csclxy  equ 0xf941 ;; scale of x & y
+     182.  00:4010  (00:F942)           csavea  equ 0xf942 ;; reservation area of advgrp
+     183.  00:4010  (00:F944)           csavem  equ 0xf944 ;; reservation area of advgrp
+     184.  00:4010  (00:F945)           cxoff   equ 0xf945 ;; x offset from center
+     185.  00:4010  (00:F947)           cyoff   equ 0xf947 ;; y offset from center
+     186.  00:4010  (00:F949)           lohmsk  equ 0xf949
+     187.  00:4010  (00:F94A)           lohdir  equ 0xf94a
+     188.  00:4010  (00:F94B)           lohadr  equ 0xf94b
+     189.  00:4010  (00:F94D)           lohcnt  equ 0xf94d
+     190.  00:4010  (00:F94F)           skpcnt  equ 0xf94f ;; skip count
+     191.  00:4010  (00:F951)           movcnt  equ 0xf951 ;; movement count
+     192.  00:4010  (00:F953)           pdirec  equ 0xf953 ;; direction of the paint
+     193.  00:4010  (00:F954)           lfprog  equ 0xf954
+     194.  00:4010  (00:F955)           rtprog  equ 0xf955
+     195.  00:4010  (00:F956)           mcltab  equ 0xf956
+     196.  00:4010  (00:F958)           mclflg  equ 0xf958 ;; play / draw
+     197.  00:4010  (00:F959)           quetab  equ 0xf959
+     198.  00:4010  (00:F971)           quebak  equ 0xf971
+     199.  00:4010  (00:F975)           voicaq  equ 0xf975
+     200.  00:4010  (00:F9F5)           voicbq  equ 0xf9f5
+     201.  00:4010  (00:FA75)           voiccq  equ 0xfa75
+     202.  00:4010  (00:FAF5)           dppage  equ 0xfaf5 ;; display page number
+     203.  00:4010  (00:FAF6)           acpage  equ 0xfaf6 ;; active page number
+     204.  00:4010  (00:FAF7)           avcsav  equ 0xfaf7 ;; reserves av control port
+     205.  00:4010  (00:FAF8)           exbrsa  equ 0xfaf8 ;; sub_rom slot address
+     206.  00:4010  (00:FAF9)           chrcnt  equ 0xfaf9 ;; character counter in the buffer; used in roman-kana translation
+     207.  00:4010  (00:FAFA)           roma    equ 0xfafa ;; area to store character (japan version only
+     208.  00:4010  (00:FAFC)           mode    equ 0xfafc ;; mode svitch for vram size
+     209.  00:4010  (00:FAFD)           noruse  equ 0xfafd ;; unused
+     210.  00:4010  (00:FAFE)           xsave   equ 0xfafe ;; [10000000 xxxxxxxx]
+     211.  00:4010  (00:FB00)           ysave   equ 0xfb00 ;; [*0000000 yyyyyyyy] *-light pen interrupt request
+     212.  00:4010  (00:FB02)           logopr  equ 0xfb02 ;; logical operation code data area used by rs-232c or disk drive
+     213.  00:4010  (00:FB03)           rstmp   equ 0xfb03
+     214.  00:4010  (00:FB03)           tocnt   equ 0xfb03
+     215.  00:4010  (00:FB04)           rsfcb   equ 0xfb04
+     216.  00:4010  (00:FB06)           rsiqln  equ 0xfb06
+     217.  00:4010  (00:FB07)           mexbih  equ 0xfb07 ;; hook
+     218.  00:4010  (00:FB0C)           oldstt  equ 0xfb0c ;; hook
+     219.  00:4010  (00:FB12)           oldint  equ 0xfb12 ;; hook
+     220.  00:4010  (00:FB17)           devnum  equ 0xfb17
+     221.  00:4010  (00:FB18)           datcnt  equ 0xfb18 ;; hook
+     222.  00:4010  (00:FB1B)           errors  equ 0xfb1b
+     223.  00:4010  (00:FB1C)           flags   equ 0xfb1c
+     224.  00:4010  (00:FB1D)           estbls  equ 0xfb1d
+     225.  00:4010  (00:FB1E)           commsk  equ 0xfb1e
+     226.  00:4010  (00:FB1F)           lstcom  equ 0xfb1f
+     227.  00:4010  (00:FB20)           lstmod  equ 0xfb20
+     228.  00:4010  (00:FB35)           prscnt  equ 0xfb35
+     229.  00:4010  (00:FB36)           savsp   equ 0xfb36
+     230.  00:4010  (00:FB38)           voicen  equ 0xfb38
+     231.  00:4010  (00:FB39)           savvol  equ 0xfb39
+     232.  00:4010  (00:FB3B)           mcllen  equ 0xfb3b
+     233.  00:4010  (00:FB3C)           mclptr  equ 0xfb3c
+     234.  00:4010  (00:FB3E)           queuen  equ 0xfb3e
+     235.  00:4010  (00:FB3F)           musicf  equ 0xfb3f
+     236.  00:4010  (00:FB40)           plycnt  equ 0xfb40
+     237.  00:4010  (00:FB41)           vcba    equ 0xfb41
+     238.  00:4010  (00:FB66)           vcbb    equ 0xfb66
+     239.  00:4010  (00:FB8B)           vcbc    equ 0xfb8b
+     240.  00:4010  (00:FBB0)           enstop  equ 0xfbb0 ;; <>0 if warm start enabled
+     241.  00:4010  (00:FBB1)           basrom  equ 0xfbb1 ;; <>0 if basic is in rom
+     242.  00:4010  (00:FBB2)           linttb  equ 0xfbb2 ;; line terminator table
+     243.  00:4010  (00:FBCA)           fstpos  equ 0xfbca ;; first position for inlin
+     244.  00:4010  (00:FBCC)           codsav  equ 0xfbcc ;; code save area for cursor
+     245.  00:4010  (00:FBCD)           fnkswi  equ 0xfbcd ;; indicate which func key is displayed
+     246.  00:4010  (00:FBCE)           fnkflg  equ 0xfbce ;; fkey which have subroutine
+     247.  00:4010  (00:FBD8)           ongsbf  equ 0xfbd8 ;; global event flag
+     248.  00:4010  (00:FBD9)           clikfl  equ 0xfbd9
+     249.  00:4010  (00:FBDA)           oldkey  equ 0xfbda
+     250.  00:4010  (00:FBE5)           newkey  equ 0xfbe5
+     251.  00:4010  (00:FBF0)           keybuf  equ 0xfbf0 ;; key code buffer
+     252.  00:4010  (00:FC18)           bufend  equ 0xfc18 ;; end of key buffer
+     253.  00:4010  (00:FC18)           linwrk  equ 0xfc18
+     254.  00:4010  (00:FC40)           patwrk  equ 0xfc40
+     255.  00:4010  (00:FC48)           bottom  equ 0xfc48
+     256.  00:4010  (00:FC4A)           himem   equ 0xfc4a
+     257.  00:4010  (00:FC4C)           trptbl  equ 0xfc4c
+     258.  00:4010  (00:FC9A)           rtycnt  equ 0xfc9a
+     259.  00:4010  (00:FC9B)           intflg  equ 0xfc9b
+     260.  00:4010  (00:FC9C)           pady    equ 0xfc9c
+     261.  00:4010  (00:FC9D)           padx    equ 0xfc9d
+     262.  00:4010  (00:FC9E)           jiffy   equ 0xfc9e
+     263.  00:4010  (00:FCA0)           intval  equ 0xfca0
+     264.  00:4010  (00:FCA2)           intcnt  equ 0xfca2
+     265.  00:4010  (00:FCA4)           lowlim  equ 0xfca4
+     266.  00:4010  (00:FCA5)           winwid  equ 0xfca5
+     267.  00:4010  (00:FCA6)           grphed  equ 0xfca6 ;; flag for graph. char
+     268.  00:4010  (00:FCA7)           esccnt  equ 0xfca7 ;; escape sequence counter
+     269.  00:4010  (00:FCA8)           insflg  equ 0xfca8 ;; insert mode flag
+     270.  00:4010  (00:FCA9)           csrsw   equ 0xfca9 ;; cursor display switch
+     271.  00:4010  (00:FCAA)           cstyle  equ 0xfcaa ;; cursor style
+     272.  00:4010  (00:FCAB)           capst   equ 0xfcab ;; capital status
+     273.  00:4010  (00:FCAC)           kanast  equ 0xfcac ;; russian key status
+     274.  00:4010  (00:FCAD)           kanamd  equ 0xfcad
+     275.  00:4010  (00:FCAE)           flbmem  equ 0xfcae ;; 0 if loading basic programm
+     276.  00:4010  (00:FCAF)           scrmod  equ 0xfcaf ;; screen mode
+     277.  00:4010  (00:FCB0)           oldscr  equ 0xfcb0 ;; old screen mode
+     278.  00:4010  (00:FCB1)           casprv  equ 0xfcb1
+     279.  00:4010  (00:FCB2)           brdatr  equ 0xfcb2 ;; border color for paint
+     280.  00:4010  (00:FCB3)           gxpos   equ 0xfcb3
+     281.  00:4010  (00:FCB5)           gypos   equ 0xfcb5
+     282.  00:4010  (00:FCB7)           grpacx  equ 0xfcb7
+     283.  00:4010  (00:FCB9)           grpacy  equ 0xfcb9
+     284.  00:4010  (00:FCBB)           drwflg  equ 0xfcbb
+     285.  00:4010  (00:FCBC)           drwscl  equ 0xfcbc
+     286.  00:4010  (00:FCBD)           drwang  equ 0xfcbd
+     287.  00:4010  (00:FCBE)           runbnf  equ 0xfcbe ;; doing bload bsave or not
+     288.  00:4010  (00:FCBF)           savent  equ 0xfcbf ;; start address for bsave
+     289.  00:4010  (00:FCC1)           exptbl  equ 0xfcc1 ;; flag for expanded slot
+     290.  00:4010  (00:FCC5)           slttbl  equ 0xfcc5 ;; current expanded slot reg
+     291.  00:4010  (00:FCC9)           sltatr  equ 0xfcc9
+     292.  00:4010  (00:FD09)           sltwrk  equ 0xfd09
+     293.  00:4010  (00:FD89)           procnm  equ 0xfd89 ;; name of expanded statement
+     294.  00:4010  (00:FD99)           device  equ 0xfd99 ;; device id for cartrige 0-3
+      19   00:4010                        include main.asm
+       1.  00:4010                        module main
+       2.  00:4010                      
+       3.  00:4010                      
+       4.  00:4010                        ;;
+       5.  00:4010                        ;; start
+       6.  00:4010                        ;;
+       7.  00:4010                      start:
+       8.  00:4010  CD 1A 40              call init
+       9.  00:4013  CD E9 40              call logo.run
+      10.  00:4016  CD 30 41              call game.run
+      11.  00:4019  C9                    ret
+      12.  00:401A                      
+      13.  00:401A                      
+      14.  00:401A                        ;;
+      15.  00:401A                        ;; init
+      16.  00:401A                        ;;
+      17.  00:401A                      init:
+      18.  00:401A                        ;; screen 2
+      19.  00:401A  3E 02                 ld a,2
+      20.  00:401C  CD 5F 00              call bios.chgmod
+      21.  00:401F                        ;; disable keyboard click
+      22.  00:401F  AF                    xor a
+      23.  00:4020  32 DB F3              ld (sysvar.cliksw),a
+      24.  00:4023                        ;; change border color
+      25.  00:4023  32 EB F3              ld (sysvar.bdrclr),a
+      26.  00:4026  C3 62 00              jp bios.chgclr
+      20   00:4029                        include uncompress.asm
+       1.  00:4029                        module uncompress
+       2.  00:4029                      
+       3.  00:4029                      
+       4.  00:4029                        ;;
+       5.  00:4029                      	;; variables
+       6.  00:4029                      	;;
+       7.  00:4029  (00:C000)           ram_end # 256                   ; reusable ram
+       8.  00:4029                      
+       9.  00:4029                      
+      10.  00:4029                        ;;
+      11.  00:4029                        ;; to_vram
+      12.  00:4029                        ;;
+      13.  00:4029                        ;; in DE=compressed data ptr
+      14.  00:4029                        ;; in HL=start vram addr
+      15.  00:4029                      to_vram:
+      16.  00:4029  F3                    di
+      17.  00:402A  CD 53 00              call bios.setwrt
+      18.  00:402D  D5                    push de
+      19.  00:402E  DD E1                 pop ix
+      20.  00:4030  CD 35 40              call to_vram_write
+      21.  00:4033  FB                    ei
+      22.  00:4034  C9                    ret
+      23.  00:4035                      
+      24.  00:4035                      
+      25.  00:4035                        ;;
+      26.  00:4035                        ;; to_vram_noset
+      27.  00:4035                        ;;
+      28.  00:4035                        ;; in DE=compressed data ptr
+      29.  00:4035                      to_vram_write:
+      30.  00:4035                        ;; bc=token count
+      31.  00:4035  DD 4E 00              ld c,(ix+0)
+      32.  00:4038  DD 46 01              ld b,(ix+1)
+      33.  00:403B  DD 23                 inc ix
+      34.  00:403D  DD 23                 inc ix
+      35.  00:403F                      
+      36.  00:403F                        ;; de=dest (256 bytes align)
+      37.  00:403F  21 00 C0              ld hl,ram_end
+      38.  00:4042  11 00 01              ld de,256
+      39.  00:4045  19                    add hl,de
+      40.  00:4046  2E 00                 ld l,0
+      41.  00:4048  EB                    ex de,hl
+      42.  00:4049                      
+      43.  00:4049                        ;; uncompress loop
+      44.  00:4049                      .loop:
+      45.  00:4049                          ;; a=len
+      46.  00:4049  DD 7E 00                ld a,(ix+0)
+      47.  00:404C  DD 23                   inc ix
+      48.  00:404E  B7                      or a
+      49.  00:404F  28 14                   jr z,.skip
+      50.  00:4051                      
+      51.  00:4051  C5                          push bc
+      52.  00:4052  47                          ld b,a                  ; b=back reference len
+      53.  00:4053  DD 4E 00                    ld c,(ix+0)             ; c=back reference offset
+      54.  00:4056  DD 23                       inc ix
+      55.  00:4058                              ;; hl:addr = (de-backoffset) mod 256
+      56.  00:4058  7B                          ld a,e
+      57.  00:4059  91                          sub c
+      58.  00:405A  6F                          ld l,a
+      59.  00:405B  62                          ld h,d
+      60.  00:405C                              ;; copy back reference
+      61.  00:405C                      .loop2:
+      62.  00:405C  7E                          ld a,(hl)
+      63.  00:405D  2C                          inc l                         ; hl=hl mod 256
+      64.  00:405E  D3 98                       out (0x98),a
+      65.  00:4060  12                          ld (de),a
+      66.  00:4061  1C                          inc e                         ; de=de mod 256
+      67.  00:4062  10 F8                       djnz .loop2
+      68.  00:4064  C1                          pop bc
+      69.  00:4065                      
+      70.  00:4065                      .skip:
+      71.  00:4065                          ;; a=next char
+      72.  00:4065  DD 7E 00                ld a,(ix+0)
+      73.  00:4068                      
+      74.  00:4068                          ;; write nextchar
+      75.  00:4068  D3 98                   out (0x98),a
+      76.  00:406A  12                      ld (de),a
+      77.  00:406B  1C                      inc e
+      78.  00:406C  DD 23                   inc ix
+      79.  00:406E                      
+      80.  00:406E                          ;; end?
+      81.  00:406E  0B                      dec bc
+      82.  00:406F  79                      ld a,c
+      83.  00:4070  B0                      or b
+      84.  00:4071                      
+      85.  00:4071  20 D6                 jr nz,.loop
+      86.  00:4073  C9                    ret
+      21   00:4074                        include graphics.asm
+       1.  00:4074                        module graphics
+       2.  00:4074                      
+       3.  00:4074                      
+       4.  00:4074                        ;;
+       5.  00:4074                        ;; tiles enums
+       6.  00:4074                        ;;
+       7.  00:4074  (00:0001)           tiles_floor:  equ 1
+       8.  00:4074  (00:0002)           tiles_player:  equ 2
+       9.  00:4074  (00:0003)           tiles_robot1:  equ 3
+      10.  00:4074  (00:0004)           tiles_robot2:  equ 4
+      11.  00:4074  (00:0005)           tiles_explosion:  equ 5
+      12.  00:4074  (00:0006)           tiles_junk: equ 6
+      13.  00:4074                      
+      14.  00:4074                      
+      15.  00:4074                        ;;
+      16.  00:4074                        ;; clear
+      17.  00:4074                        ;;
+      18.  00:4074                      clear:
+      19.  00:4074  2A C7 F3              ld hl,(sysvar.grpnam)
+      20.  00:4077  11 20 00              ld de,32
+      21.  00:407A  01 00 03              ld bc,768
+      22.  00:407D  AF                    xor a
+      23.  00:407E  C3 56 00              jp bios.filvrm
+      24.  00:4081                      
+      25.  00:4081                      
+      26.  00:4081                        ;;
+      27.  00:4081                        ;; print_text
+      28.  00:4081                        ;;
+      29.  00:4081                      print_text:
+      30.  00:4081  F3                    di
+      31.  00:4082  CD 53 00              call bios.setwrt
+      32.  00:4085                      .loop:
+      33.  00:4085  1A                    ld a,(de)
+      34.  00:4086  B7                    or a
+      35.  00:4087  28 05                 jr z,.exit
+      36.  00:4089  13                    inc de
+      37.  00:408A  D3 98                 out (0x98),a
+      38.  00:408C  18 F7                 jr .loop
+      39.  00:408E                      .exit:
+      40.  00:408E  FB                    ei
+      41.  00:408F  C9                    ret
+      42.  00:4090                      
+      43.  00:4090                      
+      44.  00:4090                        ;;
+      45.  00:4090                        ;; print_number8
+      46.  00:4090                        ;;
+      47.  00:4090                      print_number8:
+      48.  00:4090  F3                    di
+      49.  00:4091  D5                    push de
+      50.  00:4092  CD 53 00              call bios.setwrt
+      51.  00:4095  E1                    pop hl
+      52.  00:4096  01 9C FF              ld bc,-100
+      53.  00:4099  CD A8 40              call .num1
+      54.  00:409C  0E F6                 ld c,-10
+      55.  00:409E  CD A8 40              call .num1
+      56.  00:40A1  0E FF                 ld c,-1
+      57.  00:40A3  CD A8 40              call .num1
+      58.  00:40A6  FB                    ei
+      59.  00:40A7  C9                    ret
+      60.  00:40A8                      .num1:
+      61.  00:40A8  3E 2F                 ld a,47
+      62.  00:40AA                      .loop:
+      63.  00:40AA  3C                    inc a
+      64.  00:40AB  09                    add hl,bc
+      65.  00:40AC  38 FC                 jr c,.loop
+      66.  00:40AE  ED 42                 sbc hl,bc
+      67.  00:40B0  D3 98                 out (0x98),a
+      68.  00:40B2  C9                    ret
+      69.  00:40B3                      
+      70.  00:40B3                      
+      71.  00:40B3                        ;;
+      72.  00:40B3                        ;; print_number16
+      73.  00:40B3                        ;;
+      74.  00:40B3                      print_number16:
+      75.  00:40B3  F3                    di
+      76.  00:40B4  D5                    push de
+      77.  00:40B5  CD 53 00              call bios.setwrt
+      78.  00:40B8  E1                    pop hl
+      79.  00:40B9  01 F0 D8            	ld bc,-10000
+      80.  00:40BC  CD A8 40            	call print_number8.num1
+      81.  00:40BF  01 18 FC            	ld bc,-1000
+      82.  00:40C2  CD A8 40            	call print_number8.num1
+      83.  00:40C5  01 9C FF              ld bc,-100
+      84.  00:40C8  CD A8 40            	call print_number8.num1
+      85.  00:40CB  0E F6               	ld c,-10
+      86.  00:40CD  CD A8 40            	call print_number8.num1
+      87.  00:40D0  0E FF               	ld c,-1
+      88.  00:40D2  CD A8 40            	call print_number8.num1
+      89.  00:40D5  FB                  	ei
+      90.  00:40D6  C9                  	ret
+      22   00:40D7                        include math.asm
+       1.  00:40D7                        module math
+       2.  00:40D7                      
+       3.  00:40D7                      
+       4.  00:40D7                        ;;
+       5.  00:40D7                        ;; variables
+       6.  00:40D7                        ;;
+       7.  00:40D7  (00:C100)           random_seed:  #2
+       8.  00:40D7                      
+       9.  00:40D7                      
+      10.  00:40D7                        ;;
+      11.  00:40D7                        ;; random
+      12.  00:40D7                        ;;
+      13.  00:40D7                      random:
+      14.  00:40D7  E5                    push hl
+      15.  00:40D8  D5                    push de
+      16.  00:40D9  2A 00 C1              ld hl,(random_seed)
+      17.  00:40DC  ED 5F                 ld a,r
+      18.  00:40DE  57                    ld d,a
+      19.  00:40DF  5E                    ld e,(hl)
+      20.  00:40E0  19                    add hl,de
+      21.  00:40E1  85                    add a,l
+      22.  00:40E2  AC                    xor h
+      23.  00:40E3  22 00 C1              ld (random_seed),hl
+      24.  00:40E6  D1                    pop de
+      25.  00:40E7  E1                    pop hl
+      26.  00:40E8  C9                    ret
+      23   00:40E9                        include logo.asm
+       1.  00:40E9                        module logo
+       2.  00:40E9                      
+       3.  00:40E9                      
+       4.  00:40E9                        ;;
+       5.  00:40E9                        ;; run
+       6.  00:40E9                        ;;
+       7.  00:40E9                      run:
+       8.  00:40E9  CD 41 00              call bios.disscr
+       9.  00:40EC  CD F5 40              call load_color
+      10.  00:40EF  CD FE 40              call show_anim
+      11.  00:40F2  C3 56 01              jp bios.kilbuf
+      12.  00:40F5                      
+      13.  00:40F5                      
+      14.  00:40F5                        ;;
+      15.  00:40F5                        ;; load_color
+      16.  00:40F5                        ;;
+      17.  00:40F5                      load_color:
+      18.  00:40F5  11 44 45              ld de,resources.logo_color
+      19.  00:40F8  2A C9 F3              ld hl,(sysvar.grpcol)
+      20.  00:40FB  C3 29 40              jp uncompress.to_vram
+      21.  00:40FE                      
+      22.  00:40FE                      
+      23.  00:40FE                        ;;
+      24.  00:40FE                        ;; show_anim
+      25.  00:40FE                        ;;
+      26.  00:40FE                      show_anim:
+      27.  00:40FE  CD 0E 41              call load_frame0
+      28.  00:4101  CD 26 41              call wait
+      29.  00:4104  C0                  	ret nz
+      30.  00:4105  CD 1A 41              call load_frame1
+      31.  00:4108  CD 26 41              call wait
+      32.  00:410B  C0                    ret nz
+      33.  00:410C  18 F0                 jr show_anim
+      34.  00:410E                      
+      35.  00:410E                      
+      36.  00:410E                        ;;
+      37.  00:410E                        ;; load_frame0
+      38.  00:410E                        ;;
+      39.  00:410E                      load_frame0:
+      40.  00:410E  11 32 46              ld de,resources.logo_frame0
+      41.  00:4111  2A CB F3              ld hl,(sysvar.grpcgp)
+      42.  00:4114  CD 29 40              call uncompress.to_vram
+      43.  00:4117  C3 44 00              jp bios.enascr
+      44.  00:411A                      
+      45.  00:411A                      
+      46.  00:411A                        ;;
+      47.  00:411A                        ;; load_frame1
+      48.  00:411A                        ;;
+      49.  00:411A                      load_frame1:
+      50.  00:411A  11 2C 48              ld de,resources.logo_frame1
+      51.  00:411D  2A CB F3              ld hl,(sysvar.grpcgp)
+      52.  00:4120  CD 29 40              call uncompress.to_vram
+      53.  00:4123  C3 44 00              jp bios.enascr
+      54.  00:4126                      
+      55.  00:4126                      
+      56.  00:4126                        ;;
+      57.  00:4126                        ;; wait
+      58.  00:4126                        ;;
+      59.  00:4126                      wait:
+      60.  00:4126  06 14                 ld b,20
+      61.  00:4128                      .loop:
+      62.  00:4128  CD 9C 00              call bios.chsns
+      63.  00:412B  C0                    ret nz
+      64.  00:412C  76                    halt
+      65.  00:412D  10 F9                 djnz .loop
+      66.  00:412F  C9                    ret
+      24   00:4130                        include game.asm
+       1.  00:4130                        module game
+       2.  00:4130                      
+       3.  00:4130                      
+       4.  00:4130                        ;;
+       5.  00:4130                        ;; run
+       6.  00:4130                        ;;
+       7.  00:4130                      run:
+       8.  00:4130  CD 56 01              call bios.kilbuf
+       9.  00:4133  CD 41 00              call bios.disscr
+      10.  00:4136  CD 42 41              call load_tiles
+      11.  00:4139  CD 74 40              call graphics.clear
+      12.  00:413C  CD 44 00              call bios.enascr
+      13.  00:413F  C3 54 41              jp start_game
+      14.  00:4142                      
+      15.  00:4142                      
+      16.  00:4142                        ;;
+      17.  00:4142                        ;; load_tiles
+      18.  00:4142                        ;;
+      19.  00:4142                      load_tiles:
+      20.  00:4142                        ;; pattern
+      21.  00:4142  11 25 4A              ld de,resources.tiles_pattern
+      22.  00:4145  2A CB F3              ld hl,(sysvar.grpcgp)
+      23.  00:4148  CD 29 40              call uncompress.to_vram
+      24.  00:414B                        ;; logo
+      25.  00:414B  11 54 57              ld de,resources.tiles_color
+      26.  00:414E  2A C9 F3              ld hl,(sysvar.grpcol)
+      27.  00:4151  C3 29 40              jp uncompress.to_vram
+      28.  00:4154                      
+      29.  00:4154                      
+      30.  00:4154                        ;;
+      31.  00:4154                        ;; start_game
+      32.  00:4154                        ;;
+      33.  00:4154                      start_game:
+      34.  00:4154  CD 8E 41              call level.init
+      35.  00:4157  CD 5D 41              call show_level
+      36.  00:415A  C3 6B 41              jp game_loop
+      37.  00:415D                      
+      38.  00:415D                      
+      39.  00:415D                        ;;
+      40.  00:415D                        ;; show_level
+      41.  00:415D                        ;;
+      42.  00:415D                      show_level:
+      43.  00:415D  76                    halt
+      44.  00:415E  CD A6 41              call level.draw
+      45.  00:4161  CD 0C 42              call level.draw_level_title
+      46.  00:4164  CD 9F 00              call bios.chget
+      47.  00:4167  76                    halt
+      48.  00:4168  C3 A6 41              jp level.draw
+      49.  00:416B                      
+      50.  00:416B                      
+      51.  00:416B                        ;;
+      52.  00:416B                        ;; game_loop
+      53.  00:416B                        ;;
+      54.  00:416B                      game_loop:
+      55.  00:416B  CD A1 44              call player.update
+      56.  00:416E  CD 37 43              call robots.update
+      57.  00:4171  CD DB 44              call player.collide
+      58.  00:4174  CD 4C 43              call robots.collide
+      59.  00:4177  CD D6 44              call player.clear_pos_flag
+      60.  00:417A  76                    halt
+      61.  00:417B  18 EE                 jr game_loop
+      62.  00:417D                      
+      63.  00:417D                      
+      64.  00:417D                        ;;
+      65.  00:417D                        ;; game_over
+      66.  00:417D                        ;;
+      67.  00:417D                      game_over:
+      68.  00:417D  76                    halt
+      69.  00:417E  CD A6 41              call level.draw
+      70.  00:4181  CD 03 42              call level.draw_game_over
+      71.  00:4184  CD 44 00              call bios.enascr
+      72.  00:4187  CD 9F 00              call bios.chget
+      73.  00:418A  76                    halt
+      74.  00:418B  C3 A6 41              jp level.draw
+      25   00:418E                        include level.asm
+       1.  00:418E                        module level
+       2.  00:418E                      
+       3.  00:418E                      
+       4.  00:418E                        ;;
+       5.  00:418E                        ;; variables
+       6.  00:418E                        ;;
+       7.  00:418E  (00:C102)           current_level:  #1
+       8.  00:418E                      
+       9.  00:418E                      
+      10.  00:418E                        ;;
+      11.  00:418E                        ;; init
+      12.  00:418E                        ;;
+      13.  00:418E                      init:
+      14.  00:418E  3E 01                 ld a,1
+      15.  00:4190  32 02 C1              ld (current_level),a
+      16.  00:4193  CD 05 43              call robots.init
+      17.  00:4196  CD 1F 44              call player.init
+      18.  00:4199  CD 22 43              call robots.random_pos
+      19.  00:419C  21 E8 03              ld hl,1000
+      20.  00:419F  22 2F C2              ld (player.score),hl
+      21.  00:41A2  22 31 C2              ld (player.hiscore),hl
+      22.  00:41A5  C9                    ret
+      23.  00:41A6                      
+      24.  00:41A6                      
+      25.  00:41A6                        ;;
+      26.  00:41A6                        ;; draw
+      27.  00:41A6                        ;;
+      28.  00:41A6                      draw:
+      29.  00:41A6  CD B6 41              call draw_floor
+      30.  00:41A9                        ;; draw score
+      31.  00:41A9  2A C7 F3              ld hl,(sysvar.grpnam)
+      32.  00:41AC  11 EB 44              ld de,resources.msg_score
+      33.  00:41AF  CD 81 40              call graphics.print_text
+      34.  00:41B2  CD C5 41              call draw_score
+      35.  00:41B5  C9                    ret
+      36.  00:41B6                      
+      37.  00:41B6                      
+      38.  00:41B6                        ;;
+      39.  00:41B6                        ;; draw_floor
+      40.  00:41B6                        ;;
+      41.  00:41B6                      draw_floor:
+      42.  00:41B6  2A C7 F3              ld hl,(sysvar.grpnam)
+      43.  00:41B9  11 20 00              ld de,32
+      44.  00:41BC  19                    add hl,de
+      45.  00:41BD  01 00 03              ld bc,768
+      46.  00:41C0  3E 01                 ld a,1
+      47.  00:41C2  C3 56 00              jp bios.filvrm
+      48.  00:41C5                      
+      49.  00:41C5                        ;;
+      50.  00:41C5                        ;; draw_score
+      51.  00:41C5                        ;;
+      52.  00:41C5                      draw_score:
+      53.  00:41C5                        ;; score
+      54.  00:41C5  2A 2F C2              ld hl,(player.score)
+      55.  00:41C8  EB                    ex de,hl
+      56.  00:41C9  2A C7 F3              ld hl,(sysvar.grpnam)
+      57.  00:41CC  01 06 00              ld bc,6
+      58.  00:41CF  09                    add hl,bc
+      59.  00:41D0  CD B3 40              call graphics.print_number16
+      60.  00:41D3                      
+      61.  00:41D3                        ;; hi-score
+      62.  00:41D3  2A 31 C2              ld hl,(player.hiscore)
+      63.  00:41D6  EB                    ex de,hl
+      64.  00:41D7  2A C7 F3              ld hl,(sysvar.grpnam)
+      65.  00:41DA  01 1A 00              ld bc,26
+      66.  00:41DD  09                    add hl,bc
+      67.  00:41DE  C3 B3 40              jp graphics.print_number16
+      68.  00:41E1                      
+      69.  00:41E1                      
+      70.  00:41E1                        ;;
+      71.  00:41E1                        ;; draw_title
+      72.  00:41E1                        ;;
+      73.  00:41E1                      draw_title:
+      74.  00:41E1  C5                    push bc
+      75.  00:41E2  2A C7 F3              ld hl,(sysvar.grpnam)
+      76.  00:41E5  01 4A 01              ld bc,32*10+10
+      77.  00:41E8  09                    add hl,bc
+      78.  00:41E9  CD 81 40              call graphics.print_text
+      79.  00:41EC                      
+      80.  00:41EC  2A C7 F3              ld hl,(sysvar.grpnam)
+      81.  00:41EF  01 2A 01              ld bc,32*9+10
+      82.  00:41F2  09                    add hl,bc
+      83.  00:41F3  D1                    pop de
+      84.  00:41F4  D5                    push de
+      85.  00:41F5  CD 81 40              call graphics.print_text
+      86.  00:41F8                      
+      87.  00:41F8  2A C7 F3              ld hl,(sysvar.grpnam)
+      88.  00:41FB  01 6A 01              ld bc,32*11+10
+      89.  00:41FE  09                    add hl,bc
+      90.  00:41FF  D1                    pop de
+      91.  00:4200  C3 81 40              jp graphics.print_text
+      92.  00:4203                      
+      93.  00:4203                      
+      94.  00:4203                        ;;
+      95.  00:4203                        ;; draw_game_over
+      96.  00:4203                        ;;
+      97.  00:4203                      draw_game_over:
+      98.  00:4203  11 28 45              ld de,resources.msg_dead0
+      99.  00:4206  01 36 45              ld bc,resources.msg_dead1
+     100.  00:4209  C3 E1 41              jp draw_title
+     101.  00:420C                      
+     102.  00:420C                      
+     103.  00:420C                        ;;
+     104.  00:420C                        ;; draw_level_title
+     105.  00:420C                        ;;
+     106.  00:420C                      draw_level_title:
+     107.  00:420C  11 0C 45              ld de,resources.msg_title0
+     108.  00:420F  01 1A 45              ld bc,resources.msg_title1
+     109.  00:4212  CD E1 41              call draw_title
+     110.  00:4215                        ;; score
+     111.  00:4215  3A 02 C1              ld a,(current_level)
+     112.  00:4218  16 00                 ld d,0
+     113.  00:421A  5F                    ld e,a
+     114.  00:421B  2A C7 F3              ld hl,(sysvar.grpnam)
+     115.  00:421E  01 52 01              ld bc,32*10+18
+     116.  00:4221  09                    add hl,bc
+     117.  00:4222  C3 90 40              jp graphics.print_number8
+     118.  00:4225                      
+     119.  00:4225                      
+     120.  00:4225                        ;;
+     121.  00:4225                        ;; tile
+     122.  00:4225                        ;;
+     123.  00:4225                      tile:
+     124.  00:4225  F5                    push af
+     125.  00:4226                        ;; x
+     126.  00:4226  DD 7E 00              ld a,(ix+0)
+     127.  00:4229  5F                    ld e,a
+     128.  00:422A  16 00                 ld d,0
+     129.  00:422C                        ;; y
+     130.  00:422C  DD 7E 01              ld a,(ix+1)
+     131.  00:422F  6F                    ld l,a
+     132.  00:4230  26 00                 ld h,0
+     133.  00:4232  29                    add hl,hl
+     134.  00:4233  29                    add hl,hl
+     135.  00:4234  29                  	add hl,hl
+     136.  00:4235  29                  	add hl,hl
+     137.  00:4236  29                  	add hl,hl
+     138.  00:4237                        ;; name table
+     139.  00:4237  ED 5B C7 F3           ld de,(sysvar.grpnam)
+     140.  00:423B  19                    add hl,de
+     141.  00:423C  F1                    pop af
+     142.  00:423D  C3 4D 00              jp bios.wrtvrm
+     143.  00:4240                      
+     144.  00:4240                      
+     145.  00:4240                        ;;
+     146.  00:4240                        ;; next
+     147.  00:4240                        ;;
+     148.  00:4240                      next:
+     149.  00:4240  11 E8 03              ld de,1000
+     150.  00:4243  CD 63 44              call player.add_score
+     151.  00:4246  21 02 C1              ld hl,current_level
+     152.  00:4249  34                    inc (hl)
+     153.  00:424A  CD 5D 41              call game.show_level
+     154.  00:424D  CD 05 43              call robots.init
+     155.  00:4250  CD 1F 44              call player.init
+     156.  00:4253  C3 22 43              jp robots.random_pos
+      26   00:4256                        include collision.asm
+       1.  00:4256                        module collision
+       2.  00:4256                      
+       3.  00:4256                      
+       4.  00:4256                        ;;
+       5.  00:4256                        ;; check_robot
+       6.  00:4256                        ;;
+       7.  00:4256                      check_robot:
+       8.  00:4256  FD 7E 04              ld a,(iy+robot.state_offset)
+       9.  00:4259  FE 03                 cp robot.state_dead
+      10.  00:425B  28 1E                 jr z,.nocollision
+      11.  00:425D                        ;; check ptr
+      12.  00:425D  DD E5                 push ix
+      13.  00:425F  E1                    pop hl
+      14.  00:4260  FD E5                 push iy
+      15.  00:4262  D1                    pop de
+      16.  00:4263  B7                    or a
+      17.  00:4264  ED 52                 sbc hl,de
+      18.  00:4266  28 13                 jr z,.nocollision
+      19.  00:4268                        ;; check x
+      20.  00:4268  DD 7E 00              ld a,(ix+spr.x)
+      21.  00:426B  FD BE 00              cp (iy+spr.x)
+      22.  00:426E  20 0B                 jr nz,.nocollision
+      23.  00:4270                        ;; check y
+      24.  00:4270  DD 7E 01              ld a,(ix+spr.y)
+      25.  00:4273  FD BE 01              cp (iy+spr.y)
+      26.  00:4276  20 03                 jr nz,.nocollision
+      27.  00:4278                        ;; collision
+      28.  00:4278  3E 01                 ld a,1
+      29.  00:427A  C9                    ret
+      30.  00:427B                      .nocollision:
+      31.  00:427B  AF                    xor a
+      32.  00:427C  C9                    ret
+      33.  00:427D                      
+      34.  00:427D                      
+      35.  00:427D                        ;;
+      36.  00:427D                        ;; check_robots
+      37.  00:427D                        ;;
+      38.  00:427D                      check_robots:
+      39.  00:427D  FD 21 03 C1           ld iy,robots.array
+      40.  00:4281  06 3C                 ld b,robots.count
+      41.  00:4283                      .loop:
+      42.  00:4283  CD 56 42              call check_robot
+      43.  00:4286  B7                    or a
+      44.  00:4287  C0                    ret nz
+      45.  00:4288  11 05 00              ld de,robot.size
+      46.  00:428B  FD 19                 add iy,de
+      47.  00:428D  10 F4                 djnz .loop
+      48.  00:428F  C9                    ret
+      27   00:4290                        include spr.asm
+       1.  00:4290                        module spr
+       2.  00:4290                      
+       3.  00:4290                      
+       4.  00:4290                        ;;
+       5.  00:4290                        ;; enums
+       6.  00:4290                        ;;
+       7.  00:4290  (00:0000)           x:  equ 0
+       8.  00:4290  (00:0001)           y:  equ 1
+       9.  00:4290                      
+      10.  00:4290                      
+      11.  00:4290                        ;;
+      12.  00:4290                        ;; random_pos
+      13.  00:4290                        ;;
+      14.  00:4290                      random_pos:
+      15.  00:4290                        ;; rnd x
+      16.  00:4290  CD D7 40              call math.random
+      17.  00:4293  E6 1F                 and 0x1f
+      18.  00:4295  DD 77 00              ld (ix+spr.x),a
+      19.  00:4298                        ;; rnd y
+      20.  00:4298                      .loop:
+      21.  00:4298  CD D7 40              call math.random
+      22.  00:429B  FE 17                 cp 23
+      23.  00:429D  3C                    inc a
+      24.  00:429E  30 F8                 jr nc,.loop
+      25.  00:42A0  DD 77 01              ld (ix+spr.y),a
+      26.  00:42A3  C9                    ret
+      27.  00:42A4                      
+      28.  00:42A4                      
+      29.  00:42A4                        ;;
+      30.  00:42A4                        ;; move_right
+      31.  00:42A4                        ;;
+      32.  00:42A4                      move_right:
+      33.  00:42A4  DD 7E 00              ld a,(ix+x)
+      34.  00:42A7  FE 1F                 cp 31
+      35.  00:42A9  C8                    ret z
+      36.  00:42AA  DD 34 00              inc (ix+x)
+      37.  00:42AD  C9                    ret
+      38.  00:42AE                      
+      39.  00:42AE                      
+      40.  00:42AE                        ;;
+      41.  00:42AE                        ;; move_left
+      42.  00:42AE                        ;;
+      43.  00:42AE                      move_left:
+      44.  00:42AE  DD 7E 00              ld a,(ix+x)
+      45.  00:42B1  B7                    or a
+      46.  00:42B2  C8                    ret z
+      47.  00:42B3  DD 35 00              dec (ix+x)
+      48.  00:42B6  C9                    ret
+      49.  00:42B7                      
+      50.  00:42B7                      
+      51.  00:42B7                        ;;
+      52.  00:42B7                        ;; move_up
+      53.  00:42B7                        ;;
+      54.  00:42B7                      move_up:
+      55.  00:42B7  DD 7E 01              ld a,(ix+y)
+      56.  00:42BA  FE 01                 cp 1
+      57.  00:42BC  C8                    ret z
+      58.  00:42BD  DD 35 01              dec (ix+y)
+      59.  00:42C0  C9                    ret
+      60.  00:42C1                      
+      61.  00:42C1                      
+      62.  00:42C1                        ;;
+      63.  00:42C1                        ;; move_down
+      64.  00:42C1                        ;;
+      65.  00:42C1                      move_down:
+      66.  00:42C1  DD 7E 01              ld a,(ix+y)
+      67.  00:42C4  FE 17                 cp 23
+      68.  00:42C6  C8                    ret z
+      69.  00:42C7  DD 34 01              inc (ix+y)
+      70.  00:42CA  C9                    ret
+      71.  00:42CB                      
+      72.  00:42CB                      
+      73.  00:42CB                        ;;
+      74.  00:42CB                        ;; draw
+      75.  00:42CB                        ;;
+      76.  00:42CB                      draw:
+      77.  00:42CB  F5                    push af
+      78.  00:42CC                        ;; x
+      79.  00:42CC  DD 7E 00              ld a,(ix+x)
+      80.  00:42CF  5F                    ld e,a
+      81.  00:42D0  16 00                 ld d,0
+      82.  00:42D2                        ;; y
+      83.  00:42D2  DD 7E 01              ld a,(ix+y)
+      84.  00:42D5  6F                    ld l,a
+      85.  00:42D6  26 00                 ld h,0
+      86.  00:42D8  29                    add hl,hl
+      87.  00:42D9  29                    add hl,hl
+      88.  00:42DA  29                  	add hl,hl
+      89.  00:42DB  29                  	add hl,hl
+      90.  00:42DC  29                    add hl,hl
+      91.  00:42DD  19                    add hl,de
+      92.  00:42DE                        ;; name table
+      93.  00:42DE  ED 5B C7 F3           ld de,(sysvar.grpnam)
+      94.  00:42E2  19                    add hl,de
+      95.  00:42E3  F1                    pop af
+      96.  00:42E4  C3 4D 00              jp bios.wrtvrm
+      97.  00:42E7                      
+      98.  00:42E7                      
+      99.  00:42E7                        ;;
+     100.  00:42E7                        ;; clear
+     101.  00:42E7                        ;;
+     102.  00:42E7                      clear:
+     103.  00:42E7  3E 01                 ld a,graphics.tiles_floor
+     104.  00:42E9  C3 CB 42              jp draw
+     105.  00:42EC                      
+     106.  00:42EC                      
+     107.  00:42EC                        ;;
+     108.  00:42EC                        ;; draw_player
+     109.  00:42EC                        ;;
+     110.  00:42EC                      draw_player:
+     111.  00:42EC  3E 02                 ld a,graphics.tiles_player
+     112.  00:42EE  C3 CB 42              jp draw
+     113.  00:42F1                      
+     114.  00:42F1                      
+     115.  00:42F1                        ;;
+     116.  00:42F1                        ;; draw_robot1
+     117.  00:42F1                        ;;
+     118.  00:42F1                      draw_robot1:
+     119.  00:42F1  3E 03                 ld a,graphics.tiles_robot1
+     120.  00:42F3  C3 CB 42              jp draw
+     121.  00:42F6                      
+     122.  00:42F6                      
+     123.  00:42F6                        ;;
+     124.  00:42F6                        ;; draw_robot2
+     125.  00:42F6                        ;;
+     126.  00:42F6                      draw_robot2:
+     127.  00:42F6  3E 04                 ld a,graphics.tiles_robot2
+     128.  00:42F8  C3 CB 42              jp draw
+     129.  00:42FB                      
+     130.  00:42FB                      
+     131.  00:42FB                        ;;
+     132.  00:42FB                        ;; draw_explosion
+     133.  00:42FB                        ;;
+     134.  00:42FB                      draw_explosion:
+     135.  00:42FB  3E 05                 ld a,graphics.tiles_explosion
+     136.  00:42FD  C3 CB 42              jp draw
+     137.  00:4300                      
+     138.  00:4300                      
+     139.  00:4300                        ;;
+     140.  00:4300                        ;; draw_junk
+     141.  00:4300                        ;;
+     142.  00:4300                      draw_junk:
+     143.  00:4300  3E 06                 ld a,graphics.tiles_junk
+     144.  00:4302  C3 CB 42              jp draw
+      28   00:4305                        include robots.asm
+       1.  00:4305                        module robots
+       2.  00:4305                      
+       3.  00:4305                      
+       4.  00:4305                        ;;
+       5.  00:4305                        ;; variables
+       6.  00:4305                        ;;
+       7.  00:4305  (00:003C)           count:  equ 60
+       8.  00:4305  (00:C103)           array:  #count*robot.size
+       9.  00:4305                      
+      10.  00:4305                      
+      11.  00:4305                        ;;
+      12.  00:4305                        ;; init
+      13.  00:4305                        ;;
+      14.  00:4305                      init:
+      15.  00:4305  DD 21 03 C1           ld ix,array
+      16.  00:4309  06 3C                 ld b,count
+      17.  00:430B                      .loop:
+      18.  00:430B  CD 75 43              call robot.init
+      19.  00:430E  11 05 00              ld de,robot.size
+      20.  00:4311  DD 19                 add ix,de
+      21.  00:4313  10 F6                 djnz .loop
+      22.  00:4315  C9                    ret
+      23.  00:4316                      
+      24.  00:4316                      
+      25.  00:4316                        ;;
+      26.  00:4316                        ;; level_robots_count
+      27.  00:4316                        ;;
+      28.  00:4316                      level_robots_count:
+      29.  00:4316  3A 02 C1              ld a,(level.current_level)
+      30.  00:4319  C6 09                 add a,9
+      31.  00:431B  FE 3B                 cp 59
+      32.  00:431D  20 02                 jr nz,.skip
+      33.  00:431F  3E 3B                 ld a,59
+      34.  00:4321                      .skip:
+      35.  00:4321  C9                    ret
+      36.  00:4322                      
+      37.  00:4322                      
+      38.  00:4322                        ;;
+      39.  00:4322                        ;; random_pos
+      40.  00:4322                        ;;
+      41.  00:4322                      random_pos:
+      42.  00:4322  CD 16 43              call level_robots_count
+      43.  00:4325  47                    ld b,a
+      44.  00:4326  DD 21 03 C1           ld ix,array
+      45.  00:432A                      .loop:
+      46.  00:432A  C5                    push bc
+      47.  00:432B  CD 85 43              call robot.random_pos
+      48.  00:432E  C1                    pop bc
+      49.  00:432F  11 05 00              ld de,robot.size
+      50.  00:4332  DD 19                 add ix,de
+      51.  00:4334  10 F4                 djnz .loop
+      52.  00:4336  C9                    ret
+      53.  00:4337                      
+      54.  00:4337                      
+      55.  00:4337                        ;;
+      56.  00:4337                        ;; update
+      57.  00:4337                        ;;
+      58.  00:4337                      update:
+      59.  00:4337  DD 21 03 C1           ld ix,array
+      60.  00:433B  06 3C                 ld b,count
+      61.  00:433D                      .loop:
+      62.  00:433D  C5                    push bc
+      63.  00:433E  CD F2 43              call robot.update
+      64.  00:4341  C1                    pop bc
+      65.  00:4342  11 05 00              ld de,robot.size
+      66.  00:4345  DD 19                 add ix,de
+      67.  00:4347  10 F4                 djnz .loop
+      68.  00:4349  C3 5F 43              jp check_all_dead
+      69.  00:434C                      
+      70.  00:434C                      
+      71.  00:434C                        ;;
+      72.  00:434C                        ;; collide
+      73.  00:434C                        ;;
+      74.  00:434C                      collide:
+      75.  00:434C  DD 21 03 C1           ld ix,array
+      76.  00:4350  06 3C                 ld b,count
+      77.  00:4352                      .loop:
+      78.  00:4352  C5                    push bc
+      79.  00:4353  CD 0C 44              call robot.collide
+      80.  00:4356  C1                    pop bc
+      81.  00:4357  11 05 00              ld de,robot.size
+      82.  00:435A  DD 19                 add ix,de
+      83.  00:435C  10 F4                 djnz .loop
+      84.  00:435E  C9                    ret
+      85.  00:435F                      
+      86.  00:435F                      
+      87.  00:435F                        ;;
+      88.  00:435F                        ;; check_all_dead
+      89.  00:435F                        ;;
+      90.  00:435F                      check_all_dead:
+      91.  00:435F  DD 21 03 C1           ld ix,array
+      92.  00:4363  11 05 00              ld de,robot.size
+      93.  00:4366  06 3C                 ld b,count
+      94.  00:4368                      .loop:
+      95.  00:4368  DD 7E 04              ld a,(ix+robot.state_offset)
+      96.  00:436B  FE 00                 cp robot.state_normal
+      97.  00:436D  C8                    ret z
+      98.  00:436E  DD 19                 add ix,de
+      99.  00:4370  10 F6                 djnz .loop
+     100.  00:4372  C3 40 42              jp level.next
+      29   00:4375                      	include robot.asm
+       1.  00:4375                        module robot
+       2.  00:4375                      
+       3.  00:4375                      
+       4.  00:4375                        ;;
+       5.  00:4375                        ;; enums
+       6.  00:4375                        ;;
+       7.  00:4375  (00:0005)           size:  equ 5
+       8.  00:4375  (00:0002)           frame_index:  equ 2
+       9.  00:4375  (00:0003)           frame_time: equ 3
+      10.  00:4375  (00:0004)           state_offset:  equ 4
+      11.  00:4375                      
+      12.  00:4375  (00:0000)           state_normal: equ 0
+      13.  00:4375  (00:0001)           state_explosion:  equ 1
+      14.  00:4375  (00:0002)           state_junk: equ 2
+      15.  00:4375  (00:0003)           state_dead:  equ 3
+      16.  00:4375                      
+      17.  00:4375                      
+      18.  00:4375                        ;;
+      19.  00:4375                        ;; init
+      20.  00:4375                        ;;
+      21.  00:4375                      init:
+      22.  00:4375  DD 77 01              ld (ix+spr.y),a
+      23.  00:4378  DD 36 02 00           ld (ix+frame_index),0
+      24.  00:437C  DD 36 03 0A           ld (ix+frame_time),10
+      25.  00:4380  DD 36 04 03           ld (ix+state_offset),state_dead
+      26.  00:4384  C9                    ret
+      27.  00:4385                      
+      28.  00:4385                      
+      29.  00:4385                        ;;
+      30.  00:4385                        ;; random_pos
+      31.  00:4385                        ;;
+      32.  00:4385                      random_pos:
+      33.  00:4385  06 32                 ld b,50
+      34.  00:4387                      .loop:
+      35.  00:4387  DD 36 04 00           ld (ix+state_offset),state_normal
+      36.  00:438B  CD 90 42              call spr.random_pos
+      37.  00:438E                        ;; check
+      38.  00:438E  C5                    push bc
+      39.  00:438F  CD 7D 42              call collision.check_robots
+      40.  00:4392  C1                    pop bc
+      41.  00:4393  B7                    or a
+      42.  00:4394  C8                    ret z
+      43.  00:4395  10 F0                 djnz .loop
+      44.  00:4397  DD 36 04 03           ld (ix+state_offset),state_dead
+      45.  00:439B  C9                    ret
+      46.  00:439C                      
+      47.  00:439C                      
+      48.  00:439C                        ;;
+      49.  00:439C                        ;; update_frame
+      50.  00:439C                        ;;
+      51.  00:439C                      update_frame:
+      52.  00:439C  DD 35 03              dec (ix+frame_time)
+      53.  00:439F  C0                    ret nz
+      54.  00:43A0  DD 36 03 0A           ld (ix+frame_time),10
+      55.  00:43A4  3E 01                 ld a,1
+      56.  00:43A6  DD 96 02              sub (ix+frame_index)
+      57.  00:43A9  DD 77 02              ld (ix+frame_index),a
+      58.  00:43AC  C9                    ret
+      59.  00:43AD                      
+      60.  00:43AD                      
+      61.  00:43AD                        ;;
+      62.  00:43AD                        ;; update_pos_x
+      63.  00:43AD                        ;;
+      64.  00:43AD                      update_pos_x:
+      65.  00:43AD  3A 33 C2              ld a,(player.x)
+      66.  00:43B0  DD BE 00              cp (ix+spr.x)
+      67.  00:43B3  C8                    ret z
+      68.  00:43B4  DA AE 42              jp c,spr.move_left
+      69.  00:43B7  C3 A4 42              jp spr.move_right
+      70.  00:43BA                      
+      71.  00:43BA                      
+      72.  00:43BA                        ;;
+      73.  00:43BA                        ;; update_pos_y
+      74.  00:43BA                        ;;
+      75.  00:43BA                      update_pos_y:
+      76.  00:43BA  3A 34 C2              ld a,(player.y)
+      77.  00:43BD  DD BE 01              cp (ix+spr.y)
+      78.  00:43C0  C8                    ret z
+      79.  00:43C1  DA B7 42              jp c,spr.move_up
+      80.  00:43C4  C3 C1 42              jp spr.move_down
+      81.  00:43C7                      
+      82.  00:43C7                      
+      83.  00:43C7                        ;;
+      84.  00:43C7                        ;; update_pos
+      85.  00:43C7                        ;;
+      86.  00:43C7                      update_pos:
+      87.  00:43C7  3A 35 C2              ld a,(player.moved)
+      88.  00:43CA  B7                    or a
+      89.  00:43CB  C8                    ret z
+      90.  00:43CC  CD AD 43              call update_pos_x
+      91.  00:43CF  C3 BA 43              jp update_pos_y
+      92.  00:43D2                      
+      93.  00:43D2                      
+      94.  00:43D2                        ;;
+      95.  00:43D2                        ;; update_collision
+      96.  00:43D2                        ;;
+      97.  00:43D2                      update_collision:
+      98.  00:43D2  CD 7D 42              call collision.check_robots
+      99.  00:43D5  B7                    or a
+     100.  00:43D6  C8                    ret z
+     101.  00:43D7  DD 36 04 01           ld (ix+state_offset),state_explosion
+     102.  00:43DB  C9                    ret
+     103.  00:43DC                      
+     104.  00:43DC                      
+     105.  00:43DC                        ;;
+     106.  00:43DC                        ;; update_normal
+     107.  00:43DC                        ;;
+     108.  00:43DC                      update_normal:
+     109.  00:43DC  CD E7 42              call spr.clear
+     110.  00:43DF  CD 9C 43              call update_frame
+     111.  00:43E2  CD C7 43              call update_pos
+     112.  00:43E5  C3 15 44              jp draw
+     113.  00:43E8                      
+     114.  00:43E8                      
+     115.  00:43E8                        ;;
+     116.  00:43E8                        ;; update_explosion
+     117.  00:43E8                        ;;
+     118.  00:43E8                      update_explosion:
+     119.  00:43E8  DD 36 04 02           ld (ix+state_offset),state_junk
+     120.  00:43EC  C3 FB 42              jp spr.draw_explosion
+     121.  00:43EF                      
+     122.  00:43EF                      
+     123.  00:43EF                        ;;
+     124.  00:43EF                        ;; update_junk
+     125.  00:43EF                        ;;
+     126.  00:43EF                      update_junk:
+     127.  00:43EF  C3 00 43              jp spr.draw_junk
+     128.  00:43F2                      
+     129.  00:43F2                      
+     130.  00:43F2                        ;;
+     131.  00:43F2                        ;; update
+     132.  00:43F2                        ;;
+     133.  00:43F2                      update:
+     134.  00:43F2  DD 7E 04              ld a,(ix+state_offset)
+     135.  00:43F5  FE 00                 cp state_normal
+     136.  00:43F7  CA DC 43              jp z,update_normal
+     137.  00:43FA  FE 01                 cp state_explosion
+     138.  00:43FC  CA E8 43              jp z,update_explosion
+     139.  00:43FF  3A 35 C2              ld a,(player.moved)
+     140.  00:4402  B7                    or a
+     141.  00:4403  C8                    ret z
+     142.  00:4404  DD 7E 04              ld a,(ix+state_offset)
+     143.  00:4407  FE 02                 cp state_junk
+     144.  00:4409  28 E4                 jr z,update_junk
+     145.  00:440B  C9                    ret
+     146.  00:440C                      
+     147.  00:440C                      
+     148.  00:440C                        ;;
+     149.  00:440C                        ;; collide
+     150.  00:440C                        ;;
+     151.  00:440C                      collide:
+     152.  00:440C  DD 7E 04              ld a,(ix+state_offset)
+     153.  00:440F  FE 00                 cp state_normal
+     154.  00:4411  C0                    ret nz
+     155.  00:4412  C3 D2 43              jp update_collision
+     156.  00:4415                      
+     157.  00:4415                      
+     158.  00:4415                        ;;
+     159.  00:4415                        ;; draw
+     160.  00:4415                        ;;
+     161.  00:4415                      draw:
+     162.  00:4415  DD 7E 02              ld a,(ix+frame_index)
+     163.  00:4418  B7                    or a
+     164.  00:4419  C2 F6 42              jp nz,spr.draw_robot2
+     165.  00:441C  C3 F1 42              jp spr.draw_robot1
+      30   00:441F                        include player.asm
+       1.  00:441F                        module player
+       2.  00:441F                      
+       3.  00:441F                      
+       4.  00:441F                        ;;
+       5.  00:441F                        ;; variables
+       6.  00:441F                        ;;
+       7.  00:441F  (00:C22F)           score:   #2
+       8.  00:441F  (00:C231)           hiscore: #2
+       9.  00:441F  (00:C233)           x:       #1
+      10.  00:441F  (00:C234)           y:       #1
+      11.  00:441F  (00:C235)           moved:   #1
+      12.  00:441F                      
+      13.  00:441F                      
+      14.  00:441F                        ;;
+      15.  00:441F                        ;; enums
+      16.  00:441F                        ;;
+      17.  00:441F  (00:0002)           move_index: equ 2
+      18.  00:441F                      
+      19.  00:441F                      
+      20.  00:441F                        ;;
+      21.  00:441F                        ;; init
+      22.  00:441F                        ;;
+      23.  00:441F                      init:
+      24.  00:441F  DD 21 33 C2           ld ix,x
+      25.  00:4423  DD 36 02 00           ld (ix+move_index),0
+      26.  00:4427  C3 BB 44              jp safe_teleport
+      27.  00:442A                      
+      28.  00:442A                      
+      29.  00:442A                        ;;
+      30.  00:442A                        ;; update_keyboard
+      31.  00:442A                        ;;
+      32.  00:442A                      update_keyboard:
+      33.  00:442A  CD 9C 00              call bios.chsns
+      34.  00:442D  C8                    ret z
+      35.  00:442E  CD 9F 00              call bios.chget
+      36.  00:4431  DD 36 02 01           ld (ix+move_index),1
+      37.  00:4435  FE 1C                 cp 0x1c
+      38.  00:4437  CA 7D 44              jp z,move_right
+      39.  00:443A  FE 1D                 cp 0x1d
+      40.  00:443C  CA 86 44              jp z,move_left
+      41.  00:443F  FE 1E                 cp 0x1e
+      42.  00:4441  CA 8F 44              jp z,move_up
+      43.  00:4444  FE 1F                 cp 0x1f
+      44.  00:4446  CA 98 44              jp z,move_down
+      45.  00:4449  FE 4D                 cp 77
+      46.  00:444B  CA BB 44              jp z,safe_teleport
+      47.  00:444E  FE 6D                 cp 109
+      48.  00:4450  CA BB 44              jp z,safe_teleport
+      49.  00:4453  FE 20                 cp 0x20
+      50.  00:4455  CA 5D 44              jp z,wait
+      51.  00:4458  DD 36 02 00           ld (ix+move_index),0
+      52.  00:445C  C9                    ret
+      53.  00:445D                      
+      54.  00:445D                      
+      55.  00:445D                        ;;
+      56.  00:445D                        ;; wait
+      57.  00:445D                        ;;
+      58.  00:445D                      wait:
+      59.  00:445D  11 FB FF              ld de,-5
+      60.  00:4460  C3 63 44              jp add_score
+      61.  00:4463                      
+      62.  00:4463                      
+      63.  00:4463                        ;;
+      64.  00:4463                        ;; add_score
+      65.  00:4463                        ;;
+      66.  00:4463                      add_score:
+      67.  00:4463  2A 2F C2              ld hl,(score)
+      68.  00:4466  19                    add hl,de
+      69.  00:4467  22 2F C2              ld (score),hl
+      70.  00:446A                        ;; check hi score
+      71.  00:446A  2A 31 C2              ld hl,(hiscore)
+      72.  00:446D  ED 5B 2F C2           ld de,(score)
+      73.  00:4471  AF                    xor a
+      74.  00:4472  ED 52                 sbc hl,de
+      75.  00:4474  30 04                 jr nc,.noupdate
+      76.  00:4476  ED 53 31 C2           ld (hiscore),de
+      77.  00:447A                      .noupdate:
+      78.  00:447A  C3 C5 41              jp level.draw_score
+      79.  00:447D                      
+      80.  00:447D                      
+      81.  00:447D                        ;;
+      82.  00:447D                        ;; move_right
+      83.  00:447D                        ;;
+      84.  00:447D                      move_right:
+      85.  00:447D  11 F6 FF              ld de,-10
+      86.  00:4480  CD 63 44              call add_score
+      87.  00:4483  C3 A4 42              jp spr.move_right
+      88.  00:4486                      
+      89.  00:4486                      
+      90.  00:4486                        ;;
+      91.  00:4486                        ;; move_left
+      92.  00:4486                        ;;
+      93.  00:4486                      move_left:
+      94.  00:4486  11 F6 FF              ld de,-10
+      95.  00:4489  CD 63 44            	call add_score
+      96.  00:448C  C3 AE 42            	jp spr.move_left
+      97.  00:448F                      
+      98.  00:448F                      
+      99.  00:448F                        ;;
+     100.  00:448F                        ;; move_up
+     101.  00:448F                        ;;
+     102.  00:448F                      move_up:
+     103.  00:448F  11 F6 FF              ld de,-10
+     104.  00:4492  CD 63 44              call add_score
+     105.  00:4495  C3 B7 42              jp spr.move_up
+     106.  00:4498                      
+     107.  00:4498                      
+     108.  00:4498                        ;;
+     109.  00:4498                        ;; move_down
+     110.  00:4498                        ;;
+     111.  00:4498                      move_down:
+     112.  00:4498  11 F6 FF              ld de,-10
+     113.  00:449B  CD 63 44              call add_score
+     114.  00:449E  C3 C1 42              jp spr.move_down
+     115.  00:44A1                      
+     116.  00:44A1                      
+     117.  00:44A1                        ;;
+     118.  00:44A1                        ;; update
+     119.  00:44A1                        ;;
+     120.  00:44A1                      update:
+     121.  00:44A1  DD 21 33 C2           ld ix,x
+     122.  00:44A5  CD E7 42              call spr.clear
+     123.  00:44A8  CD 2A 44              call update_keyboard
+     124.  00:44AB  C3 EC 42              jp spr.draw_player
+     125.  00:44AE                      
+     126.  00:44AE                      
+     127.  00:44AE                        ;;
+     128.  00:44AE                        ;; teleport
+     129.  00:44AE                        ;;
+     130.  00:44AE                      teleport:
+     131.  00:44AE  11 F6 FF              ld de,-10
+     132.  00:44B1  CD 63 44              call add_score
+     133.  00:44B4  DD 36 02 00           ld (ix+move_index),0
+     134.  00:44B8  C3 90 42              jp spr.random_pos
+     135.  00:44BB                      
+     136.  00:44BB                      
+     137.  00:44BB                        ;;
+     138.  00:44BB                        ;; safe_teleport
+     139.  00:44BB                        ;;
+     140.  00:44BB                      safe_teleport:
+     141.  00:44BB  11 CE FF              ld de,-50
+     142.  00:44BE  CD 63 44              call add_score
+     143.  00:44C1  DD 36 02 00           ld (ix+move_index),0
+     144.  00:44C5  DD 21 33 C2           ld ix,x
+     145.  00:44C9  CD 90 42              call spr.random_pos
+     146.  00:44CC                      
+     147.  00:44CC                      .loop:
+     148.  00:44CC  CD 7D 42              call collision.check_robots
+     149.  00:44CF  B7                    or a
+     150.  00:44D0  C8                    ret z
+     151.  00:44D1  CD 90 42              call spr.random_pos
+     152.  00:44D4  18 F6                 jr .loop
+     153.  00:44D6                      
+     154.  00:44D6                      
+     155.  00:44D6                        ;;
+     156.  00:44D6                        ;; clear_pos_flag
+     157.  00:44D6                        ;;
+     158.  00:44D6                      clear_pos_flag:
+     159.  00:44D6  AF                    xor a
+     160.  00:44D7  32 35 C2              ld (moved),a
+     161.  00:44DA  C9                    ret
+     162.  00:44DB                      
+     163.  00:44DB                      
+     164.  00:44DB                        ;;
+     165.  00:44DB                        ;; collide
+     166.  00:44DB                        ;;
+     167.  00:44DB                      collide:
+     168.  00:44DB  DD 21 33 C2           ld ix,x
+     169.  00:44DF  CD 7D 42              call collision.check_robots
+     170.  00:44E2  B7                    or a
+     171.  00:44E3  C8                    ret z
+     172.  00:44E4  CD 7D 41              call game.game_over
+     173.  00:44E7  E1                    pop hl                        ; to avoid stack overflow
+     174.  00:44E8  C3 54 41              jp game.start_game
+      31   00:44EB                        include resources.asm
+       1.  00:44EB                        module resources
+       2.  00:44EB                      
+       3.  00:44EB                      
+       4.  00:44EB                        ;;
+       5.  00:44EB                        ;; strings
+       6.  00:44EB                        ;;
+       7.  00:44EB                      msg_score:
+       8.  00:44EB                        db "SCORE      0     HI-SCORE      0", 0
+       8.  00:44EB  53 43 4F 52 45 20 20 20 20 20 20 30 20 20 20 20 
+       8.  00:44FB  20 48 49 2D 53 43 4F 52 45 20 20 20 20 20 20 30 
+       8.  00:450B  00 
+       9.  00:450C                      msg_title0:
+      10.  00:450C                        db "  LEVEL 000  ", 0
+      10.  00:450C  20 20 4C 45 56 45 4C 20 30 30 30 20 20 00 
+      11.  00:451A                      msg_title1:
+      12.  00:451A                        db "             ", 0
+      12.  00:451A  20 20 20 20 20 20 20 20 20 20 20 20 20 00 
+      13.  00:4528                      msg_dead0:
+      14.  00:4528                        db "  GAME OVER  ", 0
+      14.  00:4528  20 20 47 41 4D 45 20 4F 56 45 52 20 20 00 
+      15.  00:4536                      msg_dead1:
+      16.  00:4536                        db "             ", 0
+      16.  00:4536  20 20 20 20 20 20 20 20 20 20 20 20 20 00 
+      17.  00:4544                      
+      18.  00:4544                      
+      19.  00:4544                        ;;
+      20.  00:4544                        ;; logo
+      21.  00:4544                        ;;
+      22.  00:4544                      logo_color:
+      23.  00:4544  (00EE)               incbin logo3.col
+      24.  00:4632                      logo_frame0:
+      25.  00:4632  (01FA)               incbin logo.pat
+      26.  00:482C                      logo_frame1:
+      27.  00:482C  (01F9)               incbin logo2.pat
+      28.  00:4A25                      
+      29.  00:4A25                      
+      30.  00:4A25                        ;;
+      31.  00:4A25                        ;; game tiles
+      32.  00:4A25                        ;;
+      33.  00:4A25                      tiles_pattern:
+      34.  00:4A25  (0D2F)                incbin game.pat
+      35.  00:5754                      tiles_color:
+      36.  00:5754  (0305)                incbin game.col
+
+    LABELS
+-------------------------------------------------
+00:00004000 X romheader
+00:00000000 X bios.chkram
+00:00000008 X bios.synchr
+00:0000000C X bios.rdslt
+00:00000010 X bios.chrgtr
+00:00000014 X bios.wrslt
+00:00000018 X bios.outdo
+00:0000001C X bios.calslt
+00:00000020 X bios.dcompr
+00:00000024 X bios.enaslt
+00:00000028 X bios.getypr
+00:00000030 X bios.callf
+00:00000038 X bios.keyint
+00:0000003B X bios.initio
+00:0000003E X bios.inifnk
+00:00000041   bios.disscr
+00:00000044   bios.enascr
+00:00000047 X bios.wrtvdp
+00:0000004A X bios.rdvrm
+00:0000004D   bios.wrtvrm
+00:00000050 X bios.setrd
+00:00000053   bios.setwrt
+00:00000056   bios.filvrm
+00:00000059 X bios.ldirmv
+00:0000005C X bios.ldirvm
+00:0000005F   bios.chgmod
+00:00000062   bios.chgclr
+00:00000066 X bios.nmi
+00:00000069 X bios.clrspr
+00:0000006C X bios.initxt
+00:0000006F X bios.init32
+00:00000072 X bios.inigrp
+00:00000075 X bios.inimlt
+00:00000078 X bios.settxt
+00:0000007B X bios.sett32
+00:0000007E X bios.setgrp
+00:00000081 X bios.setmlt
+00:00000084 X bios.calpat
+00:00000087 X bios.calatr
+00:0000008A X bios.gspsiz
+00:0000008D X bios.grpprt
+00:00000090 X bios.gecini
+00:00000093 X bios.wrtpsg
+00:00000096 X bios.rdpsg
+00:00000099 X bios.strtms
+00:0000009C   bios.chsns
+00:0000009F   bios.chget
+00:000000A2 X bios.chput
+00:000000A5 X bios.lptout
+00:000000A8 X bios.lptstt
+00:000000AB X bios.cnvchr
+00:000000AE X bios.pinlin
+00:000000B1 X bios.inlin
+00:000000B4 X bios.qinlin
+00:000000B7 X bios.breakx
+00:000000BA X bios.iscntc
+00:000000BD X bios.ckcntc
+00:000000C0 X bios.beep
+00:000000C3 X bios.cls
+00:000000C6 X bios.posit
+00:000000C9 X bios.fnksb
+00:000000CC X bios.erafnk
+00:000000CF X bios.dspfnk
+00:000000D2 X bios.totext
+00:000000D5 X bios.gtstck
+00:000000D8 X bios.gttrig
+00:000000DB X bios.gtpad
+00:000000DE X bios.gtpdl
+00:000000E1 X bios.tapion
+00:000000E4 X bios.tapin
+00:000000E7 X bios.tapiof
+00:000000EA X bios.tapoon
+00:000000ED X bios.tapout
+00:000000F0 X bios.tapoof
+00:000000F3 X bios.stmotr
+00:000000F6 X bios.lftq
+00:000000F9 X bios.putq
+00:000000FC X bios.rightc
+00:000000FF X bios.leftc
+00:00000102 X bios.upc
+00:00000105 X bios.tupc
+00:00000108 X bios.downc
+00:0000010B X bios.tdownc
+00:0000010E X bios.scalxy
+00:00000111 X bios.mapxy
+00:00000114 X bios.fetchc
+00:00000117 X bios.storec
+00:0000011A X bios.setatr
+00:0000011D X bios.readc
+00:00000120 X bios.setc
+00:00000123 X bios.nsetcx
+00:00000126 X bios.gtaspc
+00:00000129 X bios.pntini
+00:0000012C X bios.scanr
+00:0000012F X bios.scanl
+00:00000132 X bios.chgcap
+00:00000135 X bios.chgsnd
+00:00000138 X bios.rslreg
+00:0000013B X bios.wslreg
+00:0000013E X bios.rdvdp
+00:00000141 X bios.snsmat
+00:00000144 X bios.phydio
+00:00000147 X bios.format
+00:0000014A X bios.isflio
+00:0000014D X bios.outdlp
+00:00000150 X bios.getvcp
+00:00000153 X bios.getvc2
+00:00000156   bios.kilbuf
+00:00000159 X bios.calbas
+00:0000015C X bios.subrom
+00:0000015F X bios.extrom
+00:00000162 X bios.chkslz
+00:00000165 X bios.chknew
+00:00000168 X bios.eol
+00:0000016B X bios.bigfil
+00:0000016E X bios.nsetrd
+00:00000171 X bios.nstwrt
+00:00000174 X bios.nrdvrm
+00:00000177 X bios.nwrvrm
+00:0000017A X bios.rdbtst
+00:0000017D X bios.wrbtst
+00:00000180 X bios.chgcpu
+00:00000183 X bios.getcpu
+00:00000186 X bios.pcmply
+00:00000189 X bios.pcmrec
+00:0000F2E1 X sysvar.drive
+00:0000F347 X sysvar.nmbdrv
+00:0000F355 X sysvar.dpblst
+00:0000F368 X sysvar.setrom
+00:0000F36B X sysvar.setram
+00:0000F36E X sysvar.sltmov
+00:0000F37D X sysvar.rombdos
+00:0000F380 X sysvar.rdprim
+00:0000F385 X sysvar.wrprim
+00:0000F38C X sysvar.clprim
+00:0000F39A X sysvar.usrtab
+00:0000F3AE X sysvar.linl40
+00:0000F3AF X sysvar.linl32
+00:0000F3B0 X sysvar.linlen
+00:0000F3B1 X sysvar.crtcnt
+00:0000F3B2 X sysvar.clmlst
+00:0000F3B3 X sysvar.txtnam
+00:0000F3B5 X sysvar.txtcol
+00:0000F3B7 X sysvar.txtcgp
+00:0000F3B9 X sysvar.txtatr
+00:0000F3BB X sysvar.txtpat
+00:0000F3BD X sysvar.t32nam
+00:0000F3BF X sysvar.t32col
+00:0000F3C1 X sysvar.t32cgp
+00:0000F3C3 X sysvar.t32atr
+00:0000F3C5 X sysvar.t32pat
+00:0000F3C7   sysvar.grpnam
+00:0000F3C9   sysvar.grpcol
+00:0000F3CB   sysvar.grpcgp
+00:0000F3CD X sysvar.grpatr
+00:0000F3CF X sysvar.grppat
+00:0000F3D1 X sysvar.mltnam
+00:0000F3D3 X sysvar.mltcol
+00:0000F3D5 X sysvar.mltcgp
+00:0000F3D7 X sysvar.mltatr
+00:0000F3D9 X sysvar.mltpat
+00:0000F3DB   sysvar.cliksw
+00:0000F3DC X sysvar.csry
+00:0000F3DD X sysvar.csrx
+00:0000F3DE X sysvar.cnsdfg
+00:0000F3DF X sysvar.rg0sav
+00:0000F3E0 X sysvar.rg1sav
+00:0000F3E1 X sysvar.rg2sav
+00:0000F3E2 X sysvar.rg3sav
+00:0000F3E3 X sysvar.rg4sav
+00:0000F3E4 X sysvar.rg5sav
+00:0000F3E5 X sysvar.rg6sav
+00:0000F3E6 X sysvar.rg7sav
+00:0000F3E7 X sysvar.statfl
+00:0000F3E8 X sysvar.trgflg
+00:0000F3E9 X sysvar.forclr
+00:0000F3EA X sysvar.bakclr
+00:0000F3EB   sysvar.bdrclr
+00:0000F3EC X sysvar.maxupd
+00:0000F3EF X sysvar.minupd
+00:0000F3F2 X sysvar.atrbyt
+00:0000F3F3 X sysvar.queues
+00:0000F3F5 X sysvar.frcnew
+00:0000F3F6 X sysvar.scncnt
+00:0000F3F7 X sysvar.repcnt
+00:0000F3F8 X sysvar.putpnt
+00:0000F3FA X sysvar.getpnt
+00:0000F3FC X sysvar.cs120
+00:0000F406 X sysvar.low
+00:0000F408 X sysvar.high
+00:0000F40A X sysvar.header
+00:0000F40B X sysvar.aspct1
+00:0000F40D X sysvar.aspct2
+00:0000F40F X sysvar.endpgm
+00:0000F414 X sysvar.errflg
+00:0000F415 X sysvar.lptpos
+00:0000F416 X sysvar.prtflg
+00:0000F417 X sysvar.ntmsxp
+00:0000F418 X sysvar.rawprt
+00:0000F419 X sysvar.vlzadr
+00:0000F41B X sysvar.vlzdat
+00:0000F41C X sysvar.curlin
+00:0000F41F X sysvar.kbuf
+00:0000F55D X sysvar.bufmin
+00:0000F55E X sysvar.buf
+00:0000F660 X sysvar.endbuf
+00:0000F661 X sysvar.ttypos
+00:0000F662 X sysvar.dimflg
+00:0000F663 X sysvar.valtyp
+00:0000F664 X sysvar.oprtyp
+00:0000F664 X sysvar.dores
+00:0000F665 X sysvar.donum
+00:0000F666 X sysvar.contxt
+00:0000F668 X sysvar.consav
+00:0000F669 X sysvar.contyp
+00:0000F66A X sysvar.conlo
+00:0000F672 X sysvar.memsiz
+00:0000F674 X sysvar.stktop
+00:0000F676 X sysvar.txttab
+00:0000F678 X sysvar.temppt
+00:0000F67A X sysvar.tempst
+00:0000F698 X sysvar.dsctmp
+00:0000F69B X sysvar.fretop
+00:0000F69D X sysvar.temp3
+00:0000F69F X sysvar.temp8
+00:0000F6A1 X sysvar.endfor
+00:0000F6A3 X sysvar.datlin
+00:0000F6A5 X sysvar.subflg
+00:0000F6A6 X sysvar.usflg
+00:0000F6A6 X sysvar.flginp
+00:0000F6A7 X sysvar.temp
+00:0000F6A9 X sysvar.ptrflg
+00:0000F6AA X sysvar.autflg
+00:0000F6AB X sysvar.autlin
+00:0000F6AD X sysvar.autinc
+00:0000F6AF X sysvar.savtxt
+00:0000F6B1 X sysvar.savstk
+00:0000F6B3 X sysvar.errlin
+00:0000F6B5 X sysvar.dot
+00:0000F6B7 X sysvar.errtxt
+00:0000F6B9 X sysvar.onelin
+00:0000F6BB X sysvar.oneflg
+00:0000F6BC X sysvar.temp2
+00:0000F6BE X sysvar.oldlin
+00:0000F6C0 X sysvar.oldtxt
+00:0000F6C2 X sysvar.vartab
+00:0000F6C4 X sysvar.arytab
+00:0000F6C6 X sysvar.strend
+00:0000F6C8 X sysvar.datptr
+00:0000F6CA X sysvar.deftbl
+00:0000F6E4 X sysvar.prmstk
+00:0000F6E6 X sysvar.prmlen
+00:0000F6E8 X sysvar.parm1
+00:0000F74C X sysvar.prmprv
+00:0000F74E X sysvar.prmln2
+00:0000F750 X sysvar.parm2
+00:0000F7B4 X sysvar.prmflg
+00:0000F7B5 X sysvar.aryta2
+00:0000F7B7 X sysvar.nofuns
+00:0000F7B8 X sysvar.temp9
+00:0000F7BA X sysvar.funact
+00:0000F7BC X sysvar.swptmp
+00:0000F7C4 X sysvar.trcflg
+00:0000F7C5 X sysvar.fbuffr
+00:0000F7F0 X sysvar.dectmp
+00:0000F7F2 X sysvar.dectm2
+00:0000F7F4 X sysvar.deccnt
+00:0000F7F6 X sysvar.dac
+00:0000F806 X sysvar.hold8
+00:0000F836 X sysvar.hold2
+00:0000F83E X sysvar.hold
+00:0000F847 X sysvar.arg
+00:0000F857 X sysvar.rndx
+00:0000F85F X sysvar.maxfil
+00:0000F860 X sysvar.filtab
+00:0000F862 X sysvar.nulbuf
+00:0000F864 X sysvar.ptrfil
+00:0000F866 X sysvar.runflg
+00:0000F866 X sysvar.filnam
+00:0000F871 X sysvar.filnm2
+00:0000F87C X sysvar.nlonly
+00:0000F87D X sysvar.savend
+00:0000F87F X sysvar.fnkstr
+00:0000F91F X sysvar.cgpnt
+00:0000F922 X sysvar.nambas
+00:0000F924 X sysvar.cgpbas
+00:0000F926 X sysvar.patbas
+00:0000F928 X sysvar.atrbas
+00:0000F92A X sysvar.cloc
+00:0000F92C X sysvar.cmask
+00:0000F92D X sysvar.mindel
+00:0000F92F X sysvar.maxdel
+00:0000F931 X sysvar.aspect
+00:0000F933 X sysvar.cencnt
+00:0000F935 X sysvar.clinef
+00:0000F936 X sysvar.cnpnts
+00:0000F938 X sysvar.cplotf
+00:0000F939 X sysvar.cpcnt
+00:0000F93B X sysvar.cpcnt8
+00:0000F93D X sysvar.crcsum
+00:0000F93F X sysvar.cstcnt
+00:0000F941 X sysvar.csclxy
+00:0000F942 X sysvar.csavea
+00:0000F944 X sysvar.csavem
+00:0000F945 X sysvar.cxoff
+00:0000F947 X sysvar.cyoff
+00:0000F949 X sysvar.lohmsk
+00:0000F94A X sysvar.lohdir
+00:0000F94B X sysvar.lohadr
+00:0000F94D X sysvar.lohcnt
+00:0000F94F X sysvar.skpcnt
+00:0000F951 X sysvar.movcnt
+00:0000F953 X sysvar.pdirec
+00:0000F954 X sysvar.lfprog
+00:0000F955 X sysvar.rtprog
+00:0000F956 X sysvar.mcltab
+00:0000F958 X sysvar.mclflg
+00:0000F959 X sysvar.quetab
+00:0000F971 X sysvar.quebak
+00:0000F975 X sysvar.voicaq
+00:0000F9F5 X sysvar.voicbq
+00:0000FA75 X sysvar.voiccq
+00:0000FAF5 X sysvar.dppage
+00:0000FAF6 X sysvar.acpage
+00:0000FAF7 X sysvar.avcsav
+00:0000FAF8 X sysvar.exbrsa
+00:0000FAF9 X sysvar.chrcnt
+00:0000FAFA X sysvar.roma
+00:0000FAFC X sysvar.mode
+00:0000FAFD X sysvar.noruse
+00:0000FAFE X sysvar.xsave
+00:0000FB00 X sysvar.ysave
+00:0000FB02 X sysvar.logopr
+00:0000FB03 X sysvar.rstmp
+00:0000FB03 X sysvar.tocnt
+00:0000FB04 X sysvar.rsfcb
+00:0000FB06 X sysvar.rsiqln
+00:0000FB07 X sysvar.mexbih
+00:0000FB0C X sysvar.oldstt
+00:0000FB12 X sysvar.oldint
+00:0000FB17 X sysvar.devnum
+00:0000FB18 X sysvar.datcnt
+00:0000FB1B X sysvar.errors
+00:0000FB1C X sysvar.flags
+00:0000FB1D X sysvar.estbls
+00:0000FB1E X sysvar.commsk
+00:0000FB1F X sysvar.lstcom
+00:0000FB20 X sysvar.lstmod
+00:0000FB35 X sysvar.prscnt
+00:0000FB36 X sysvar.savsp
+00:0000FB38 X sysvar.voicen
+00:0000FB39 X sysvar.savvol
+00:0000FB3B X sysvar.mcllen
+00:0000FB3C X sysvar.mclptr
+00:0000FB3E X sysvar.queuen
+00:0000FB3F X sysvar.musicf
+00:0000FB40 X sysvar.plycnt
+00:0000FB41 X sysvar.vcba
+00:0000FB66 X sysvar.vcbb
+00:0000FB8B X sysvar.vcbc
+00:0000FBB0 X sysvar.enstop
+00:0000FBB1 X sysvar.basrom
+00:0000FBB2 X sysvar.linttb
+00:0000FBCA X sysvar.fstpos
+00:0000FBCC X sysvar.codsav
+00:0000FBCD X sysvar.fnkswi
+00:0000FBCE X sysvar.fnkflg
+00:0000FBD8 X sysvar.ongsbf
+00:0000FBD9 X sysvar.clikfl
+00:0000FBDA X sysvar.oldkey
+00:0000FBE5 X sysvar.newkey
+00:0000FBF0 X sysvar.keybuf
+00:0000FC18 X sysvar.bufend
+00:0000FC18 X sysvar.linwrk
+00:0000FC40 X sysvar.patwrk
+00:0000FC48 X sysvar.bottom
+00:0000FC4A X sysvar.himem
+00:0000FC4C X sysvar.trptbl
+00:0000FC9A X sysvar.rtycnt
+00:0000FC9B X sysvar.intflg
+00:0000FC9C X sysvar.pady
+00:0000FC9D X sysvar.padx
+00:0000FC9E X sysvar.jiffy
+00:0000FCA0 X sysvar.intval
+00:0000FCA2 X sysvar.intcnt
+00:0000FCA4 X sysvar.lowlim
+00:0000FCA5 X sysvar.winwid
+00:0000FCA6 X sysvar.grphed
+00:0000FCA7 X sysvar.esccnt
+00:0000FCA8 X sysvar.insflg
+00:0000FCA9 X sysvar.csrsw
+00:0000FCAA X sysvar.cstyle
+00:0000FCAB X sysvar.capst
+00:0000FCAC X sysvar.kanast
+00:0000FCAD X sysvar.kanamd
+00:0000FCAE X sysvar.flbmem
+00:0000FCAF X sysvar.scrmod
+00:0000FCB0 X sysvar.oldscr
+00:0000FCB1 X sysvar.casprv
+00:0000FCB2 X sysvar.brdatr
+00:0000FCB3 X sysvar.gxpos
+00:0000FCB5 X sysvar.gypos
+00:0000FCB7 X sysvar.grpacx
+00:0000FCB9 X sysvar.grpacy
+00:0000FCBB X sysvar.drwflg
+00:0000FCBC X sysvar.drwscl
+00:0000FCBD X sysvar.drwang
+00:0000FCBE X sysvar.runbnf
+00:0000FCBF X sysvar.savent
+00:0000FCC1 X sysvar.exptbl
+00:0000FCC5 X sysvar.slttbl
+00:0000FCC9 X sysvar.sltatr
+00:0000FD09 X sysvar.sltwrk
+00:0000FD89 X sysvar.procnm
+00:0000FD99 X sysvar.device
+00:00004010   main.start
+00:0000401A   main.init
+00:0000C000   uncompress.ram_end
+00:00004029   uncompress.to_vram
+00:00004035   uncompress.to_vram_write
+00:00004049   uncompress.to_vram_write.loop
+00:0000405C   uncompress.to_vram_write.loop2
+00:00004065   uncompress.to_vram_write.skip
+00:00000001   graphics.tiles_floor
+00:00000002   graphics.tiles_player
+00:00000003   graphics.tiles_robot1
+00:00000004   graphics.tiles_robot2
+00:00000005   graphics.tiles_explosion
+00:00000006   graphics.tiles_junk
+00:00004074   graphics.clear
+00:00004081   graphics.print_text
+00:00004085   graphics.print_text.loop
+00:0000408E   graphics.print_text.exit
+00:00004090   graphics.print_number8
+00:000040A8   graphics.print_number8.num1
+00:000040AA   graphics.print_number8.loop
+00:000040B3   graphics.print_number16
+00:0000C100   math.random_seed
+00:000040D7   math.random
+00:000040E9   logo.run
+00:000040F5   logo.load_color
+00:000040FE   logo.show_anim
+00:0000410E   logo.load_frame0
+00:0000411A   logo.load_frame1
+00:00004126   logo.wait
+00:00004128   logo.wait.loop
+00:00004130   game.run
+00:00004142   game.load_tiles
+00:00004154   game.start_game
+00:0000415D   game.show_level
+00:0000416B   game.game_loop
+00:0000417D   game.game_over
+00:0000C102   level.current_level
+00:0000418E   level.init
+00:000041A6   level.draw
+00:000041B6   level.draw_floor
+00:000041C5   level.draw_score
+00:000041E1   level.draw_title
+00:00004203   level.draw_game_over
+00:0000420C   level.draw_level_title
+00:00004225 X level.tile
+00:00004240   level.next
+00:00004256   collision.check_robot
+00:0000427B   collision.check_robot.nocollision
+00:0000427D   collision.check_robots
+00:00004283   collision.check_robots.loop
+00:00000000   spr.x
+00:00000001   spr.y
+00:00004290   spr.random_pos
+00:00004298   spr.random_pos.loop
+00:000042A4   spr.move_right
+00:000042AE   spr.move_left
+00:000042B7   spr.move_up
+00:000042C1   spr.move_down
+00:000042CB   spr.draw
+00:000042E7   spr.clear
+00:000042EC   spr.draw_player
+00:000042F1   spr.draw_robot1
+00:000042F6   spr.draw_robot2
+00:000042FB   spr.draw_explosion
+00:00004300   spr.draw_junk
+00:0000003C   robots.count
+00:0000C103   robots.array
+00:00004305   robots.init
+00:0000430B   robots.init.loop
+00:00004316   robots.level_robots_count
+00:00004321   robots.level_robots_count.skip
+00:00004322   robots.random_pos
+00:0000432A   robots.random_pos.loop
+00:00004337   robots.update
+00:0000433D   robots.update.loop
+00:0000434C   robots.collide
+00:00004352   robots.collide.loop
+00:0000435F   robots.check_all_dead
+00:00004368   robots.check_all_dead.loop
+00:00000005   robot.size
+00:00000002   robot.frame_index
+00:00000003   robot.frame_time
+00:00000004   robot.state_offset
+00:00000000   robot.state_normal
+00:00000001   robot.state_explosion
+00:00000002   robot.state_junk
+00:00000003   robot.state_dead
+00:00004375   robot.init
+00:00004385   robot.random_pos
+00:00004387   robot.random_pos.loop
+00:0000439C   robot.update_frame
+00:000043AD   robot.update_pos_x
+00:000043BA   robot.update_pos_y
+00:000043C7   robot.update_pos
+00:000043D2   robot.update_collision
+00:000043DC   robot.update_normal
+00:000043E8   robot.update_explosion
+00:000043EF   robot.update_junk
+00:000043F2   robot.update
+00:0000440C   robot.collide
+00:00004415   robot.draw
+00:0000C22F   player.score
+00:0000C231   player.hiscore
+00:0000C233   player.x
+00:0000C234   player.y
+00:0000C235   player.moved
+00:00000002   player.move_index
+00:0000441F   player.init
+00:0000442A   player.update_keyboard
+00:0000445D   player.wait
+00:00004463   player.add_score
+00:0000447A   player.add_score.noupdate
+00:0000447D   player.move_right
+00:00004486   player.move_left
+00:0000448F   player.move_up
+00:00004498   player.move_down
+00:000044A1   player.update
+00:000044AE X player.teleport
+00:000044BB   player.safe_teleport
+00:000044CC   player.safe_teleport.loop
+00:000044D6   player.clear_pos_flag
+00:000044DB   player.collide
+00:000044EB   resources.msg_score
+00:0000450C   resources.msg_title0
+00:0000451A   resources.msg_title1
+00:00004528   resources.msg_dead0
+00:00004536   resources.msg_dead1
+00:00004544   resources.logo_color
+00:00004632   resources.logo_frame0
+00:0000482C   resources.logo_frame1
+00:00004A25   resources.tiles_pattern
+00:00005754   resources.tiles_color
+
+
+ Output: rom.out
+-------------------------------------------------
+
+ Page: 00
+  Org: 00004000  Size: 00004000  Used: 00001A59
+
+   Address   Length Align   Label
+   00004000    6745         romheader
+   00005A59    9639       <empty>
